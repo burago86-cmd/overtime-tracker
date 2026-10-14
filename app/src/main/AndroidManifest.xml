@@ -30,20 +30,22 @@
 
     <!-- ▼▼▼ ВОТ ЭТО ДОБАВИЛИ ▼▼▼ -->
     <queries>
-        <!-- Чтобы видеть приложения, умеющие принимать .xlsx -->
+         
         <intent>
             <action android:name="android.intent.action.SEND" />
             <data android:mimeType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
         </intent>
-        <!-- Чтобы видеть вообще все приложения, принимающие файлы -->
         <intent>
             <action android:name="android.intent.action.SEND" />
             <data android:mimeType="*/*" />
         </intent>
-        <!-- Чтобы видеть файловые менеджеры (сохранение в папку) -->
         <intent>
             <action android:name="android.intent.action.CREATE_DOCUMENT" />
             <data android:mimeType="*/*" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:mimeType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
         </intent>
     </queries>
 
