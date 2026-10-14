@@ -97,3 +97,27 @@ object ExcelExporter {
         context.startActivity(Intent.createChooser(intent, "Share report"))
     }
 }
+    /**
+     * Открывает файл во внешнем приложении (Excel, WPS, Google Sheets, ...).
+     * Если ничего не установлено — ничего не произойдёт.
+     */
+    fun openReport(context: Context, file: File) {
+        val uri = FileProvider.getUriForFile(
+            context,
+            context.packageName + ".fileprovider",
+            file
+        )
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(
+                uri,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        try {
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            // Если нет ни одного приложения для .xlsx — предложим поделиться
+            shareReport(context, file)
+        }
+    }
