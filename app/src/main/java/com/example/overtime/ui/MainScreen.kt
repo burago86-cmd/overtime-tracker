@@ -16,7 +16,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.example.overtime.AppState
 import com.example.overtime.data.Entry
@@ -25,9 +24,9 @@ import com.example.overtime.data.Entry
 fun MainScreen(appState: AppState) {
     var tab by remember { mutableStateOf(0) }
 
-    // editingEntry == null и showEditor == false → ничего не открыто
-    // showEditor == true и editingEntry == null → создание новой
-    // showEditor == true и editingEntry != null → редактирование
+    // Состояние редактора:
+    // showEditor == true и editingEntry == null  → создание новой записи
+    // showEditor == true и editingEntry != null  → редактирование
     var showEditor by remember { mutableStateOf(false) }
     var editingEntry by remember { mutableStateOf<Entry?>(null) }
 
@@ -66,13 +65,19 @@ fun MainScreen(appState: AppState) {
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            -> SettingsScreen(appState = appState)
-                1 -> Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("Здесь будут настройки")
-                }
+            when (tab) {
+                0 -> EntriesScreen(
+                    appState = appState,
+                    onAddClick = {
+                        editingEntry = null
+                        showEditor = true
+                    },
+                    onEditClick = { entry ->
+                        editingEntry = entry
+                        showEditor = true
+                    }
+                )
+                1 -> SettingsScreen(appState = appState)
             }
         }
     }
