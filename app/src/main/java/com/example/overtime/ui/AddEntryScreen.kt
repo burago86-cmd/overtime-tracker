@@ -31,6 +31,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -66,16 +67,12 @@ fun AddEntryScreen(
     var endTime by remember { mutableStateOf(existing?.endTime ?: LocalTime.of(21, 0)) }
     var comment by remember { mutableStateOf(existing?.comment ?: "") }
 
-    // Выходной и обед
     var isDayOff by remember {
         mutableStateOf(existing?.isDayOff ?: Entry.isWeekend(date))
     }
     var lunchText by remember {
         mutableStateOf(existing?.lunchMinutes?.takeIf { it > 0 }?.toString() ?: "")
     }
-
-    // Автоматически пересчитываем isDayOff при смене даты
-    // (только если пользователь ещё не переопределил вручную)
     var dayOffManuallyChanged by remember { mutableStateOf(existing != null) }
 
     LaunchedEffect(date) {
@@ -84,12 +81,18 @@ fun AddEntryScreen(
         }
     }
 
+    // Индивидуальная ставка
+    var customRateText by remember {
+        mutableStateOf(existing?.customHourRate?.toString() ?: "")
+    }
+
     var productId by remember { mutableStateOf(existing?.productId) }
     var quantityText by remember { mutableStateOf(existing?.quantity?.toString() ?: "") }
     var productDropdownExpanded by remember { mutableStateOf(false) }
 
     val products = appState.settings.products
     val currency = appState.currencyLabel()
+    val defaultRate = appState.settings.hourRate
 
     val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
     val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
@@ -119,6 +122,7 @@ fun AddEntryScreen(
                             endTime = endTime,
                             isDayOff = isDayOff,
                             lunchMinutes = lunchText.toIntOrNull() ?: 0,
+                            customHourRate = customRateText.toIntOrNull(),
                             productId = productId,
                             quantity = quantityText.toIntOrNull() ?: 0,
                             comment = comment
@@ -151,9 +155,7 @@ fun AddEntryScreen(
                 onClick = {
                     DatePickerDialog(
                         context,
-                        { _, y, m, d ->
-                            date = LocalDate.of(y, m + 1, d)
-                        },
+                        { _, y, m, d -> date = LocalDate.of(y, m + 1, d) },
                         date.year, date.monthValue - 1, date.dayOfMonth
                     ).show()
                 },
@@ -263,7 +265,6 @@ fun AddEntryScreen(
                             }
                         }
 
-                        // ---------- Обед (только для выходных) ----------
                         if (isDayOff) {
                             Spacer(Modifier.height(12.dp))
                             OutlinedTextField(
@@ -276,6 +277,43 @@ fun AddEntryScreen(
                                 singleLine = true
                             )
                         }
+
+                        // ---------- Индивидуальная ставка за час ----------
+                        Spacer(Modifier.height(12.dp))
+                        Text(
+                            text = "${appState.t("hour_rate")} (${appState.currencyLabel()})",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            OutlinedTextField(
+                                value = customRateText,
+                                onValueChange = { new ->
+                                    if (new.all { it.isDigit() }) customRateText = new
+                                },
+                                placeholder = { Text(defaultRate.toString()) },
+                                modifier = Modifier.weight(1f),
+                                singleLine = true
+                            )
+                            TextButton(
+                                onClick = {
+                                    val value = customRateText.toIntOrNull() ?: defaultRate
+                                    appState.setHourRate(value)
+                                }
+                            ) {
+                                Text(appState.t("make_default_rate"))
+                            }
+                        }
+                        Text(
+                            text = appState.t("custom_rate_hint"),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
             }
@@ -368,6 +406,7 @@ fun AddEntryScreen(
                         endTime = endTime,
                         isDayOff = isDayOff,
                         lunchMinutes = lunchText.toIntOrNull() ?: 0,
+                        customHourRate = customRateText.toIntOrNull(),
                         productId = productId,
                         quantity = quantityText.toIntOrNull() ?: 0,
                         comment = comment
@@ -409,11 +448,15 @@ private fun saveEntry(
     endTime: LocalTime,
     isDayOff: Boolean,
     lunchMinutes: Int,
+    customHourRate: Int?,
     productId: String?,
     quantity: Int,
     comment: String
 ) {
     val product = appState.settings.products.find { it.id == productId }
+
+    // Если customHourRate == ставка из настроек — не сохраняем индивидуальную (null)
+    val effectiveCustom = customHourRate?.takeIf { it != appState.settings.hourRate }
 
     val newEntry = Entry(
         id = existing?.id ?: Storage.newId(),
@@ -423,6 +466,7 @@ private fun saveEntry(
         endTime = if (type == EntryType.HOURS || type == EntryType.MIXED) endTime else null,
         isDayOff = isDayOff,
         lunchMinutes = if (isDayOff) lunchMinutes else 0,
+        customHourRate = if (type == EntryType.HOURS || type == EntryType.MIXED) effectiveCustom else null,
         productId = if (type == EntryType.PRODUCTS || type == EntryType.MIXED) productId else null,
         productName = if (type == EntryType.PRODUCTS || type == EntryType.MIXED) product?.name ?: "" else "",
         productPrice = if (type == EntryType.PRODUCTS || type == EntryType.MIXED) product?.price ?: 0 else 0,
