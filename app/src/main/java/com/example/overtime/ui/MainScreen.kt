@@ -24,9 +24,6 @@ import com.example.overtime.data.Entry
 fun MainScreen(appState: AppState) {
     var tab by remember { mutableStateOf(0) }
 
-    // Состояние редактора:
-    // showEditor == true и editingEntry == null  → создание новой записи
-    // showEditor == true и editingEntry != null  → редактирование
     var showEditor by remember { mutableStateOf(false) }
     var editingEntry by remember { mutableStateOf<Entry?>(null) }
 
