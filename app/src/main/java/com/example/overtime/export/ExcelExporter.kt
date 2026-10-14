@@ -11,8 +11,6 @@ import org.dhatim.fastexcel.Worksheet
 import java.io.File
 import java.io.FileOutputStream
 import java.time.YearMonth
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 object ExcelExporter {
 
@@ -37,7 +35,7 @@ object ExcelExporter {
 
         // Заголовки
         val headers = listOf(
-            "Date", "Type", "Start", "End", "Duration", "Product", "Qty", "Rate", "Price", "Total"
+            "Date", "Type", "Start", "End", "Duration (h)", "Product", "Qty", "Rate", "Price", "Total"
         )
         headers.forEachIndexed { col, title ->
             sheet.value(0, col, title)
@@ -53,7 +51,7 @@ object ExcelExporter {
             sheet.value(row, 1, e.type.name)
             sheet.value(row, 2, e.startTime?.toString() ?: "")
             sheet.value(row, 3, e.endTime?.toString() ?: "")
-            sheet.value(row, 4, e.durationHours())
+            sheet.value(row, 4, e.durationHours())     // ← часы, не минуты
             sheet.value(row, 5, e.productName)
             sheet.value(row, 6, e.quantity)
             sheet.value(row, 7, settings.hourRate)
@@ -68,9 +66,9 @@ object ExcelExporter {
         }
 
         // Итоги
-          sheet.value(row + 1, 0, "TOTAL")
+        sheet.value(row + 1, 0, "TOTAL")
         sheet.style(row + 1, 0).bold().set()
-        sheet.value(row + 1, 4, totalMinutes / 60.0)
+        sheet.value(row + 1, 4, totalMinutes / 60.0)   // ← часы в итоге
         sheet.value(row + 1, 9, totalMoney)
         sheet.style(row + 1, 4).bold().set()
         sheet.style(row + 1, 9).bold().set()
@@ -96,10 +94,10 @@ object ExcelExporter {
         }
         context.startActivity(Intent.createChooser(intent, "Share report"))
     }
-}
+
     /**
      * Открывает файл во внешнем приложении (Excel, WPS, Google Sheets, ...).
-     * Если ничего не установлено — ничего не произойдёт.
+     * Если ничего не установлено — предложит «Поделиться».
      */
     fun openReport(context: Context, file: File) {
         val uri = FileProvider.getUriForFile(
@@ -117,7 +115,7 @@ object ExcelExporter {
         try {
             context.startActivity(intent)
         } catch (e: Exception) {
-            // Если нет ни одного приложения для .xlsx — предложим поделиться
             shareReport(context, file)
         }
     }
+}
