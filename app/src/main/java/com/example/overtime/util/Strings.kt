@@ -58,7 +58,11 @@ object Strings {
         "lunch_minutes" to "Обед (мин)",
         "raw_time" to "Общее время",
         "weekend_hint" to "Сб/вс — выходной по умолчанию",
-        "holiday_hint" to "Отметьте, если это выходной"
+        "holiday_hint" to "Отметьте, если это выходной",
+        "show_money" to "Показать деньги",
+        "make_default_rate" to "Сделать основной",
+        "use_default_rate" to "По умолчанию",
+        "custom_rate_hint" to "Оставьте пустым для ставки из настроек"
     )
 
     private val en = mapOf(
@@ -117,7 +121,11 @@ object Strings {
         "lunch_minutes" to "Lunch (min)",
         "raw_time" to "Raw time",
         "weekend_hint" to "Sat/Sun is a day off by default",
-        "holiday_hint" to "Check if this is a day off"
+        "holiday_hint" to "Check if this is a day off",
+        "show_money" to "Show money",
+        "make_default_rate" to "Make default",
+        "use_default_rate" to "Default",
+        "custom_rate_hint" to "Leave empty to use rate from settings"
     )
 
     fun t(key: String, lang: String): String {
