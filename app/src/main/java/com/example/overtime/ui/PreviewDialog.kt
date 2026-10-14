@@ -15,9 +15,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -38,6 +40,7 @@ fun PreviewDialog(
 ) {
     val hourRate = appState.settings.hourRate
     val currency = appState.currencyLabel()
+    val showMoney = appState.settings.showMoneyInExport
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -48,86 +51,115 @@ fun PreviewDialog(
             )
         },
         text = {
-            Column(
-                modifier = Modifier
-                    .heightIn(max = 400.dp)
-                    .verticalScroll(rememberScrollState())
-            ) {
+            Column {
+                // --- Переключатель «Показать деньги» ---
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .padding(4.dp)
-                        .horizontalScroll(rememberScrollState())
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    HeaderCell(appState.t("date"), 75.dp)
-                    HeaderCell(appState.t("type"), 70.dp)
-                    HeaderCell(appState.t("start_time"), 55.dp)
-                    HeaderCell(appState.t("end_time"), 55.dp)
-                    HeaderCell(appState.t("lunch_minutes"), 65.dp)
-                    HeaderCell(appState.t("total_time"), 80.dp)
-                    HeaderCell(appState.t("product"), 90.dp)
-                    HeaderCell(appState.t("quantity"), 50.dp)
-                    HeaderCell(appState.t("product_price"), 50.dp)
-                    HeaderCell(appState.t("total_money"), 70.dp)
-                }
-
-                var totalHours = 0.0
-                var totalMoney = 0
-
-                monthEntries.forEach { e ->
-                    val durH = if (e.type == EntryType.HOURS || e.type == EntryType.MIXED)
-                        e.durationHours() else 0.0
-                    val money = e.total(hourRate)
-                    totalHours += durH
-                    totalMoney += money
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 2.dp)
-                            .horizontalScroll(rememberScrollState())
-                    ) {
-                        BodyCell(
-                            e.date.toString() + if (e.isDayOff) " *" else "",
-                            75.dp
-                        )
-                        BodyCell(
-                            when (e.type) {
-                                EntryType.HOURS -> appState.t("type_hours")
-                                EntryType.PRODUCTS -> appState.t("type_products")
-                                EntryType.MIXED -> appState.t("type_mixed")
-                            },
-                            70.dp
-                        )
-                        BodyCell(e.startTime?.toString() ?: "—", 55.dp)
-                        BodyCell(e.endTime?.toString() ?: "—", 55.dp)
-                        BodyCell(
-                            if (e.isDayOff && e.lunchMinutes > 0) e.lunchMinutes.toString() else "—",
-                            65.dp
-                        )
-                        BodyCell(if (durH > 0) "%.2f".format(durH) else "—", 80.dp)
-                        BodyCell(e.productName.ifBlank { "—" }, 90.dp)
-                        BodyCell(if (e.quantity > 0) e.quantity.toString() else "—", 50.dp)
-                        BodyCell(if (e.productPrice > 0) e.productPrice.toString() else "—", 50.dp)
-                        BodyCell("$money $currency", 70.dp)
-                    }
+                    Text(
+                        text = appState.t("show_money"),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Switch(
+                        checked = showMoney,
+                        onCheckedChange = { appState.setShowMoneyInExport(it) }
+                    )
                 }
 
                 Spacer(Modifier.height(8.dp))
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                Column(
+                    modifier = Modifier
+                        .heightIn(max = 380.dp)
+                        .verticalScroll(rememberScrollState())
                 ) {
-                    Text(
-                        text = "${appState.t("total_hours")}: %.2f".format(totalHours),
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "${appState.t("total_money")}: $totalMoney $currency",
-                        fontWeight = FontWeight.Bold
-                    )
+                    // Заголовки
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .padding(4.dp)
+                            .horizontalScroll(rememberScrollState())
+                    ) {
+                        HeaderCell(appState.t("date"), 75.dp)
+                        HeaderCell(appState.t("type"), 70.dp)
+                        HeaderCell(appState.t("start_time"), 55.dp)
+                        HeaderCell(appState.t("end_time"), 55.dp)
+                        HeaderCell(appState.t("lunch_minutes"), 65.dp)
+                        HeaderCell(appState.t("total_time"), 80.dp)
+                        HeaderCell(appState.t("product"), 90.dp)
+                        HeaderCell(appState.t("quantity"), 50.dp)
+                        if (showMoney) {
+                            HeaderCell(appState.t("hour_rate"), 55.dp)
+                            HeaderCell(appState.t("product_price"), 50.dp)
+                            HeaderCell(appState.t("total_money"), 70.dp)
+                        }
+                    }
+
+                    var totalHours = 0.0
+                    var totalMoney = 0
+
+                    monthEntries.forEach { e ->
+                        val durH = if (e.type == EntryType.HOURS || e.type == EntryType.MIXED)
+                            e.durationHours() else 0.0
+                        val money = e.total(hourRate)
+                        totalHours += durH
+                        totalMoney += money
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 2.dp)
+                                .horizontalScroll(rememberScrollState())
+                        ) {
+                            BodyCell(
+                                e.date.toString() + if (e.isDayOff) " *" else "",
+                                75.dp
+                            )
+                            BodyCell(
+                                when (e.type) {
+                                    EntryType.HOURS -> appState.t("type_hours")
+                                    EntryType.PRODUCTS -> appState.t("type_products")
+                                    EntryType.MIXED -> appState.t("type_mixed")
+                                },
+                                70.dp
+                            )
+                            BodyCell(e.startTime?.toString() ?: "—", 55.dp)
+                            BodyCell(e.endTime?.toString() ?: "—", 55.dp)
+                            BodyCell(
+                                if (e.isDayOff && e.lunchMinutes > 0) e.lunchMinutes.toString() else "—",
+                                65.dp
+                            )
+                            BodyCell(if (durH > 0) "%.2f".format(durH) else "—", 80.dp)
+                            BodyCell(e.productName.ifBlank { "—" }, 90.dp)
+                            BodyCell(if (e.quantity > 0) e.quantity.toString() else "—", 50.dp)
+                            if (showMoney) {
+                                BodyCell(e.effectiveHourRate(hourRate).toString(), 55.dp)
+                                BodyCell(if (e.productPrice > 0) e.productPrice.toString() else "—", 50.dp)
+                                BodyCell("$money $currency", 70.dp)
+                            }
+                        }
+                    }
+
+                    Spacer(Modifier.height(8.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "${appState.t("total_hours")}: %.2f".format(totalHours),
+                            fontWeight = FontWeight.Bold
+                        )
+                        if (showMoney) {
+                            Text(
+                                text = "${appState.t("total_money")}: $totalMoney $currency",
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
                 }
             }
         },
