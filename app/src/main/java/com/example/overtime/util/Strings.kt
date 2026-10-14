@@ -52,7 +52,13 @@ object Strings {
         "open" to "Открыть",
         "share" to "Поделиться",
         "total_time" to "Итоговое время",
-        "total_time_h" to "Итоговое время (ч)"
+        "total_time_h" to "Итоговое время (ч)",
+        "day_off" to "Выходной день",
+        "lunch" to "Обед",
+        "lunch_minutes" to "Обед (мин)",
+        "raw_time" to "Общее время",
+        "weekend_hint" to "Сб/вс — выходной по умолчанию",
+        "holiday_hint" to "Отметьте, если это выходной"
     )
 
     private val en = mapOf(
@@ -105,7 +111,13 @@ object Strings {
         "open" to "Open",
         "share" to "Share",
         "total_time" to "Total time",
-        "total_time_h" to "Total time (h)"
+        "total_time_h" to "Total time (h)",
+        "day_off" to "Day off",
+        "lunch" to "Lunch",
+        "lunch_minutes" to "Lunch (min)",
+        "raw_time" to "Raw time",
+        "weekend_hint" to "Sat/Sun is a day off by default",
+        "holiday_hint" to "Check if this is a day off"
     )
 
     fun t(key: String, lang: String): String {
