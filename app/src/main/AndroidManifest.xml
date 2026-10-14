@@ -5,7 +5,7 @@
         android:allowBackup="true"
         android:label="Overtime Tracker"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Material3.DayNight.NoActionBar">
+        android:theme="@style/Theme.OvertimeTracker">
 
         <activity
             android:name=".MainActivity"
