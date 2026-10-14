@@ -21,11 +21,36 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      # --- Расшифровка keystore и создание key.properties ---
+      - name: Decode keystore
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > app/overtime-release.jks
+
+      - name: Create key.properties
+        run: |
+          cat > key.properties << EOF
+          storeFile=overtime-release.jks
+          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
+          keyAlias=${{ secrets.KEY_ALIAS }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          EOF
+
+      # --- Сборка debug и release ---
       - name: Build debug APK
         run: gradle assembleDebug --no-daemon
 
-      - name: Upload APK
+      - name: Build release APK
+        run: gradle assembleRelease --no-daemon
+
+      # --- Загрузка артефактов ---
+      - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
           name: overtime-tracker-debug
           path: app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Upload release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: overtime-tracker-release
+          path: app/build/outputs/apk/release/app-release.apk
