@@ -20,6 +20,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.overtime.AppState
 import com.example.overtime.data.Entry
@@ -36,12 +37,13 @@ fun PreviewDialog(
     onShare: () -> Unit
 ) {
     val hourRate = appState.settings.hourRate
+    val currency = appState.currencyLabel()
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = "Предпросмотр: $month",
+                text = "${appState.t("preview")}: $month",
                 style = MaterialTheme.typography.titleMedium
             )
         },
@@ -51,7 +53,6 @@ fun PreviewDialog(
                     .heightIn(max = 400.dp)
                     .verticalScroll(rememberScrollState())
             ) {
-                // Заголовок таблицы
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -59,15 +60,15 @@ fun PreviewDialog(
                         .padding(4.dp)
                         .horizontalScroll(rememberScrollState())
                 ) {
-                    HeaderCell("Дата", 70.dp)
-                    HeaderCell("Тип", 60.dp)
-                    HeaderCell("Начало", 55.dp)
-                    HeaderCell("Конец", 55.dp)
-                    HeaderCell("Часы", 45.dp)
-                    HeaderCell("Изделие", 90.dp)
-                    HeaderCell("Кол-во", 50.dp)
-                    HeaderCell("Цена", 45.dp)
-                    HeaderCell("Итого", 55.dp)
+                    HeaderCell(appState.t("date"), 75.dp)
+                    HeaderCell(appState.t("type"), 60.dp)
+                    HeaderCell(appState.t("start_time"), 55.dp)
+                    HeaderCell(appState.t("end_time"), 55.dp)
+                    HeaderCell(appState.t("total_time"), 80.dp)
+                    HeaderCell(appState.t("product"), 90.dp)
+                    HeaderCell(appState.t("quantity"), 50.dp)
+                    HeaderCell(appState.t("product_price"), 50.dp)
+                    HeaderCell(appState.t("total_money"), 70.dp)
                 }
 
                 var totalHours = 0.0
@@ -86,22 +87,22 @@ fun PreviewDialog(
                             .padding(vertical = 2.dp)
                             .horizontalScroll(rememberScrollState())
                     ) {
-                        BodyCell(e.date.toString(), 70.dp)
+                        BodyCell(e.date.toString(), 75.dp)
                         BodyCell(
                             when (e.type) {
-                                EntryType.HOURS -> "Часы"
-                                EntryType.PRODUCTS -> "Изд."
-                                EntryType.MIXED -> "Микс"
+                                EntryType.HOURS -> appState.t("type_hours")
+                                EntryType.PRODUCTS -> appState.t("type_products")
+                                EntryType.MIXED -> appState.t("type_mixed")
                             },
                             60.dp
                         )
                         BodyCell(e.startTime?.toString() ?: "—", 55.dp)
                         BodyCell(e.endTime?.toString() ?: "—", 55.dp)
-                        BodyCell(if (durH > 0) "%.2f".format(durH) else "—", 45.dp)
+                        BodyCell(if (durH > 0) "%.2f".format(durH) else "—", 80.dp)
                         BodyCell(e.productName.ifBlank { "—" }, 90.dp)
                         BodyCell(if (e.quantity > 0) e.quantity.toString() else "—", 50.dp)
-                        BodyCell(if (e.productPrice > 0) e.productPrice.toString() else "—", 45.dp)
-                        BodyCell("$money ${appState.t("currency")}", 55.dp)
+                        BodyCell(if (e.productPrice > 0) e.productPrice.toString() else "—", 50.dp)
+                        BodyCell("$money $currency", 70.dp)
                     }
                 }
 
@@ -112,11 +113,11 @@ fun PreviewDialog(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = "Итого часов: %.2f".format(totalHours),
+                        text = "${appState.t("total_hours")}: %.2f".format(totalHours),
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "Итого: $totalMoney ${appState.t("currency")}",
+                        text = "${appState.t("total_money")}: $totalMoney $currency",
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -124,13 +125,13 @@ fun PreviewDialog(
         },
         confirmButton = {
             TextButton(onClick = onOpen) {
-                Text("Открыть")
+                Text(appState.t("open"))
             }
         },
         dismissButton = {
             Row {
                 TextButton(onClick = onShare) {
-                    Text("Поделиться")
+                    Text(appState.t("share"))
                 }
                 TextButton(onClick = onDismiss) {
                     Text(appState.t("close"))
@@ -141,7 +142,7 @@ fun PreviewDialog(
 }
 
 @Composable
-private fun HeaderCell(text: String, width: androidx.compose.ui.unit.Dp) {
+private fun HeaderCell(text: String, width: Dp) {
     Text(
         text = text,
         modifier = Modifier.width(width).padding(horizontal = 4.dp),
@@ -151,7 +152,7 @@ private fun HeaderCell(text: String, width: androidx.compose.ui.unit.Dp) {
 }
 
 @Composable
-private fun BodyCell(text: String, width: androidx.compose.ui.unit.Dp) {
+private fun BodyCell(text: String, width: Dp) {
     Text(
         text = text,
         modifier = Modifier.width(width).padding(horizontal = 4.dp),
