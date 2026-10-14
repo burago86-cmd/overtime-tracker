@@ -10,17 +10,13 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.util.UUID
 
-/**
- * DTO для сериализации — приводим LocalDate/LocalTime к строкам,
- * потому что kotlinx.serialization не знает про java.time по умолчанию.
- */
 @Serializable
 data class EntryDto(
     val id: String,
-    val date: String,           // ISO: "2026-10-14"
-    val type: String,           // "HOURS", "PRODUCTS", "MIXED"
-    val startTime: String? = null,  // "20:00"
-    val endTime: String? = null,    // "23:00"
+    val date: String,
+    val type: String,
+    val startTime: String? = null,
+    val endTime: String? = null,
     val productId: String? = null,
     val productName: String = "",
     val productPrice: Int = 0,
@@ -39,6 +35,7 @@ data class ProductDto(
 data class SettingsDto(
     val hourRate: Int = 10,
     val language: String = "ru",
+    val currency: String = "BYN",
     val darkTheme: Boolean = true,
     val products: List<ProductDto> = emptyList()
 )
@@ -49,9 +46,6 @@ data class StorageDto(
     val settings: SettingsDto = SettingsDto()
 )
 
-/**
- * Хранилище: сохраняет в JSON-файл в приватной папке приложения.
- */
 class Storage(private val context: Context) {
 
     private val file = File(context.filesDir, "overtime_data.json")
@@ -76,8 +70,6 @@ class Storage(private val context: Context) {
         )
         file.writeText(json.encodeToString(dto))
     }
-
-    // --- Конвертеры ---
 
     private fun Entry.toDto() = EntryDto(
         id = id,
@@ -110,6 +102,7 @@ class Storage(private val context: Context) {
     private fun AppSettings.toDto() = SettingsDto(
         hourRate = hourRate,
         language = language,
+        currency = currency,
         darkTheme = darkTheme,
         products = products.map { ProductDto(it.id, it.name, it.price) }
     )
@@ -117,6 +110,7 @@ class Storage(private val context: Context) {
     private fun SettingsDto.toSettings() = AppSettings(
         hourRate = hourRate,
         language = language,
+        currency = currency,
         darkTheme = darkTheme,
         products = products.map { Product(it.id, it.name, it.price) }
     )
