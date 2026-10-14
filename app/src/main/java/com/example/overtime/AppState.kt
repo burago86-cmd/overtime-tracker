@@ -28,7 +28,6 @@ class AppState(context: Context) {
 
     fun t(key: String): String = Strings.t(key, settings.language)
 
-    /** "BYN" или "USD" — то, что показываем в интерфейсе. */
     fun currencyLabel(): String = if (settings.currency == "USD") "USD" else "BYN"
 
     fun setLanguage(lang: String) {
@@ -43,6 +42,11 @@ class AppState(context: Context) {
 
     fun setDarkTheme(dark: Boolean) {
         settings = settings.copy(darkTheme = dark)
+        persist()
+    }
+
+    fun setShowMoneyInExport(show: Boolean) {
+        settings = settings.copy(showMoneyInExport = show)
         persist()
     }
 
