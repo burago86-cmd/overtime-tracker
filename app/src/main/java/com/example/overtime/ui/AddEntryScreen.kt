@@ -1,0 +1,363 @@
+package com.example.overtime.ui
+
+import android.app.DatePickerDialog
+import android.app.TimePickerDialog
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import com.example.overtime.AppState
+import com.example.overtime.data.Entry
+import com.example.overtime.data.EntryType
+import com.example.overtime.data.Storage
+import java.time.LocalDate
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AddEntryScreen(
+    appState: AppState,
+    existing: Entry?,
+    onDone: () -> Unit
+) {
+    val context = LocalContext.current
+
+    // --- Состояние формы ---
+    var date by remember { mutableStateOf(existing?.date ?: LocalDate.now()) }
+    var type by remember { mutableStateOf(existing?.type ?: EntryType.HOURS) }
+    var startTime by remember { mutableStateOf(existing?.startTime ?: LocalTime.of(18, 0)) }
+    var endTime by remember { mutableStateOf(existing?.endTime ?: LocalTime.of(21, 0)) }
+    var comment by remember { mutableStateOf(existing?.comment ?: "") }
+
+    var productId by remember { mutableStateOf(existing?.productId) }
+    var quantityText by remember { mutableStateOf(existing?.quantity?.toString() ?: "") }
+    var productDropdownExpanded by remember { mutableStateOf(false) }
+
+    val products = appState.settings.products
+
+    val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+    val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        if (existing == null) appState.t("add_entry")
+                        else appState.t("edit_entry")
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onDone) {
+                        Icon(Icons.Filled.ArrowBack, contentDescription = appState.t("back"))
+                    }
+                },
+                actions = {
+                    IconButton(onClick = {
+                        saveEntry(
+                            appState = appState,
+                            existing = existing,
+                            date = date,
+                            type = type,
+                            startTime = startTime,
+                            endTime = endTime,
+                            productId = productId,
+                            quantity = quantityText.toIntOrNull() ?: 0,
+                            comment = comment
+                        )
+                        onDone()
+                    }) {
+                        Icon(Icons.Filled.Check, contentDescription = appState.t("save"))
+                    }
+                }
+            )
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+
+            // ---------- Дата ----------
+            OutlinedTextField(
+                value = date.format(dateFormatter),
+                onValueChange = { },
+                readOnly = true,
+                label = { Text(appState.t("date")) },
+                modifier = Modifier.fillMaxWidth()
+            )
+            Button(
+                onClick = {
+                    DatePickerDialog(
+                        context,
+                        { _, y, m, d -> date = LocalDate.of(y, m + 1, d) },
+                        date.year, date.monthValue - 1, date.dayOfMonth
+                    ).show()
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(appState.t("select_date"))
+            }
+
+            // ---------- Тип ----------
+            Text(
+                text = appState.t("type"),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold
+            )
+            Column {
+                TypeOption(
+                    label = appState.t("type_hours"),
+                    selected = type == EntryType.HOURS,
+                    onSelect = { type = EntryType.HOURS }
+                )
+                TypeOption(
+                    label = appState.t("type_products"),
+                    selected = type == EntryType.PRODUCTS,
+                    onSelect = { type = EntryType.PRODUCTS }
+                )
+                TypeOption(
+                    label = appState.t("type_mixed"),
+                    selected = type == EntryType.MIXED,
+                    onSelect = { type = EntryType.MIXED }
+                )
+            }
+
+            // ---------- Время (для HOURS и MIXED) ----------
+            if (type == EntryType.HOURS || type == EntryType.MIXED) {
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text(
+                            text = appState.t("duration"),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(Modifier.height(8.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Button(
+                                onClick = {
+                                    TimePickerDialog(
+                                        context,
+                                        { _, h, m -> startTime = LocalTime.of(h, m) },
+                                        startTime.hour, startTime.minute, true
+                                    ).show()
+                                },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("${appState.t("start_time")}: ${startTime.format(timeFormatter)}")
+                            }
+                            Button(
+                                onClick = {
+                                    TimePickerDialog(
+                                        context,
+                                        { _, h, m -> endTime = LocalTime.of(h, m) },
+                                        endTime.hour, endTime.minute, true
+                                    ).show()
+                                },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("${appState.t("end_time")}: ${endTime.format(timeFormatter)}")
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ---------- Изделие (для PRODUCTS и MIXED) ----------
+            if (type == EntryType.PRODUCTS || type == EntryType.MIXED) {
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text(
+                            text = appState.t("product"),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(Modifier.height(8.dp))
+
+                        if (products.isEmpty()) {
+                            Text(
+                                text = "Сначала добавьте изделия в настройках",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        } else {
+                            ExposedDropdownMenuBox(
+                                expanded = productDropdownExpanded,
+                                onExpandedChange = { productDropdownExpanded = it }
+                            ) {
+                                val selectedProduct = products.find { it.id == productId }
+                                OutlinedTextField(
+                                    value = selectedProduct?.let { "${it.name} — ${it.price} ${appState.t("currency")}" } ?: "",
+                                    onValueChange = { },
+                                    readOnly = true,
+                                    label = { Text(appState.t("product")) },
+                                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = productDropdownExpanded) },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .menuAnchor()
+                                )
+                                ExposedDropdownMenu(
+                                    expanded = productDropdownExpanded,
+                                    onDismissRequest = { productDropdownExpanded = false }
+                                ) {
+                                    products.forEach { p ->
+                                        DropdownMenuItem(
+                                            text = { Text("${p.name} — ${p.price} ${appState.t("currency")}") },
+                                            onClick = {
+                                                productId = p.id
+                                                productDropdownExpanded = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+
+                            Spacer(Modifier.height(8.dp))
+
+                            OutlinedTextField(
+                                value = quantityText,
+                                onValueChange = { new ->
+                                    if (new.all { it.isDigit() }) quantityText = new
+                                },
+                                label = { Text(appState.t("quantity")) },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
+                }
+            }
+
+            // ---------- Комментарий ----------
+            OutlinedTextField(
+                value = comment,
+                onValueChange = { comment = it },
+                label = { Text(appState.t("comment")) },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(Modifier.height(16.dp))
+
+            // ---------- Кнопка сохранить ----------
+            Button(
+                onClick = {
+                    saveEntry(
+                        appState = appState,
+                        existing = existing,
+                        date = date,
+                        type = type,
+                        startTime = startTime,
+                        endTime = endTime,
+                        productId = productId,
+                        quantity = quantityText.toIntOrNull() ?: 0,
+                        comment = comment
+                    )
+                    onDone()
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(appState.t("save"))
+            }
+        }
+    }
+}
+
+@Composable
+private fun TypeOption(
+    label: String,
+    selected: Boolean,
+    onSelect: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .selectable(selected = selected, onClick = onSelect)
+            .padding(4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        RadioButton(selected = selected, onClick = onSelect)
+        Text(label, modifier = Modifier.padding(start = 8.dp))
+    }
+}
+
+private fun saveEntry(
+    appState: AppState,
+    existing: Entry?,
+    date: LocalDate,
+    type: EntryType,
+    startTime: LocalTime,
+    endTime: LocalTime,
+    productId: String?,
+    quantity: Int,
+    comment: String
+) {
+    // Находим выбранное изделие, чтобы зафиксировать имя и цену
+    val product = appState.settings.products.find { it.id == productId }
+
+    val newEntry = Entry(
+        id = existing?.id ?: Storage.newId(),
+        date = date,
+        type = type,
+        startTime = if (type == EntryType.HOURS || type == EntryType.MIXED) startTime else null,
+        endTime = if (type == EntryType.HOURS || type == EntryType.MIXED) endTime else null,
+        productId = if (type == EntryType.PRODUCTS || type == EntryType.MIXED) productId else null,
+        productName = if (type == EntryType.PRODUCTS || type == EntryType.MIXED) product?.name ?: "" else "",
+        productPrice = if (type == EntryType.PRODUCTS || type == EntryType.MIXED) product?.price ?: 0 else 0,
+        quantity = if (type == EntryType.PRODUCTS || type == EntryType.MIXED) quantity else 0,
+        comment = comment
+    )
+
+    if (existing == null) appState.addEntry(newEntry)
+    else appState.updateEntry(newEntry)
+}
