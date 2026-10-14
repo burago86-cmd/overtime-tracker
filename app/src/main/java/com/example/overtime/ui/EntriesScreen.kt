@@ -68,7 +68,6 @@ fun EntriesScreen(
 
     val summary = calculateSummary(monthEntries, hourRate)
 
-    // --- Диалог предпросмотра ---
     if (showPreview && previewFile != null) {
         PreviewDialog(
             appState = appState,
@@ -298,11 +297,21 @@ private fun EntryCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = entry.date.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = entry.date.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                    if (entry.isDayOff) {
+                        Text(
+                            text = " • ${appState.t("day_off")}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
 
                 val typeLabel = when (entry.type) {
                     EntryType.HOURS -> appState.t("type_hours")
@@ -338,6 +347,14 @@ private fun EntryCard(
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
+                }
+
+                if (entry.isDayOff && entry.lunchMinutes > 0) {
+                    Text(
+                        text = "${appState.t("lunch")}: ${entry.lunchMinutes} ${appState.t("minutes_short")}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
 
                 if (entry.comment.isNotBlank()) {
