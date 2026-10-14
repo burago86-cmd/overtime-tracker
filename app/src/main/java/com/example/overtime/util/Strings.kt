@@ -1,9 +1,5 @@
 package com.example.overtime.util
 
-/**
- * Все строки приложения на двух языках.
- * Использование: Strings.t("add_entry", lang)
- */
 object Strings {
 
     private val ru = mapOf(
@@ -26,7 +22,6 @@ object Strings {
         "save" to "Сохранить",
         "cancel" to "Отмена",
         "delete" to "Удалить",
-        "confirm_delete" to "Удалить запись?",
         "yes" to "Да",
         "no" to "Нет",
         "no_entries" to "Записей пока нет",
@@ -34,11 +29,11 @@ object Strings {
         "total_hours" to "Часов",
         "total_products" to "Изделий",
         "total_money" to "Сумма",
-        "hour_rate" to "Ставка за час (BYN)",
+        "hour_rate" to "Ставка за час",
         "products_catalog" to "Справочник изделий",
         "add_product" to "Добавить изделие",
         "product_name" to "Название",
-        "product_price" to "Цена (BYN)",
+        "product_price" to "Цена",
         "language" to "Язык",
         "dark_theme" to "Тёмная тема",
         "export_excel" to "Экспорт в Excel",
@@ -48,13 +43,16 @@ object Strings {
         "hours_short" to "ч",
         "minutes_short" to "мин",
         "pieces_short" to "шт",
-        "currency" to "BYN",
+        "currency" to "Валюта",
         "back" to "Назад",
         "close" to "Закрыть",
         "select_date" to "Выбрать дату",
         "select_time" to "Выбрать время",
-        "invalid_data" to "Проверьте данные",
-        "entry_saved" to "Запись сохранена"
+        "preview" to "Предпросмотр",
+        "open" to "Открыть",
+        "share" to "Поделиться",
+        "total_time" to "Итоговое время",
+        "total_time_h" to "Итоговое время (ч)"
     )
 
     private val en = mapOf(
@@ -77,7 +75,6 @@ object Strings {
         "save" to "Save",
         "cancel" to "Cancel",
         "delete" to "Delete",
-        "confirm_delete" to "Delete entry?",
         "yes" to "Yes",
         "no" to "No",
         "no_entries" to "No entries yet",
@@ -85,11 +82,11 @@ object Strings {
         "total_hours" to "Hours",
         "total_products" to "Products",
         "total_money" to "Total",
-        "hour_rate" to "Hour rate (BYN)",
+        "hour_rate" to "Hour rate",
         "products_catalog" to "Products catalog",
         "add_product" to "Add product",
         "product_name" to "Name",
-        "product_price" to "Price (BYN)",
+        "product_price" to "Price",
         "language" to "Language",
         "dark_theme" to "Dark theme",
         "export_excel" to "Export to Excel",
@@ -99,13 +96,16 @@ object Strings {
         "hours_short" to "h",
         "minutes_short" to "min",
         "pieces_short" to "pcs",
-        "currency" to "BYN",
+        "currency" to "Currency",
         "back" to "Back",
         "close" to "Close",
         "select_date" to "Select date",
         "select_time" to "Select time",
-        "invalid_data" to "Check the data",
-        "entry_saved" to "Entry saved"
+        "preview" to "Preview",
+        "open" to "Open",
+        "share" to "Share",
+        "total_time" to "Total time",
+        "total_time_h" to "Total time (h)"
     )
 
     fun t(key: String, lang: String): String {
