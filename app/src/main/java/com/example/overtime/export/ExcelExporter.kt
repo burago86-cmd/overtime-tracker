@@ -14,9 +14,6 @@ import java.time.YearMonth
 
 object ExcelExporter {
 
-    /**
-     * Генерирует .xlsx за указанный месяц и возвращает File.
-     */
     fun buildReport(
         context: Context,
         entries: List<Entry>,
@@ -33,9 +30,9 @@ object ExcelExporter {
         val workbook = Workbook(fos, "OvertimeTracker", "1.0")
         val sheet: Worksheet = workbook.newWorksheet("Report")
 
-        // Заголовки
         val headers = listOf(
-            "Date", "Type", "Start", "End", "Duration (h)", "Product", "Qty", "Rate", "Price", "Total"
+            "Date", "Type", "Start", "End",
+            "Итоговое время (ч)", "Product", "Qty", "Rate", "Price", "Total"
         )
         headers.forEachIndexed { col, title ->
             sheet.value(0, col, title)
@@ -51,7 +48,7 @@ object ExcelExporter {
             sheet.value(row, 1, e.type.name)
             sheet.value(row, 2, e.startTime?.toString() ?: "")
             sheet.value(row, 3, e.endTime?.toString() ?: "")
-            sheet.value(row, 4, e.durationHours())     // ← часы, не минуты
+            sheet.value(row, 4, e.durationHours())
             sheet.value(row, 5, e.productName)
             sheet.value(row, 6, e.quantity)
             sheet.value(row, 7, settings.hourRate)
@@ -65,10 +62,9 @@ object ExcelExporter {
             row++
         }
 
-        // Итоги
         sheet.value(row + 1, 0, "TOTAL")
         sheet.style(row + 1, 0).bold().set()
-        sheet.value(row + 1, 4, totalMinutes / 60.0)   // ← часы в итоге
+        sheet.value(row + 1, 4, totalMinutes / 60.0)
         sheet.value(row + 1, 9, totalMoney)
         sheet.style(row + 1, 4).bold().set()
         sheet.style(row + 1, 9).bold().set()
@@ -78,9 +74,6 @@ object ExcelExporter {
         return file
     }
 
-    /**
-     * Открывает системный диалог «Поделиться» с готовым файлом.
-     */
     fun shareReport(context: Context, file: File) {
         val uri = FileProvider.getUriForFile(
             context,
@@ -95,10 +88,6 @@ object ExcelExporter {
         context.startActivity(Intent.createChooser(intent, "Share report"))
     }
 
-    /**
-     * Открывает файл во внешнем приложении (Excel, WPS, Google Sheets, ...).
-     * Если ничего не установлено — предложит «Поделиться».
-     */
     fun openReport(context: Context, file: File) {
         val uri = FileProvider.getUriForFile(
             context,
