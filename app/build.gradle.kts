@@ -54,5 +54,8 @@ dependencies {
     // JSON для хранения
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
 
+    // Excel экспорт
+    implementation("org.dhatim:fastexcel:0.18.4")
+
     debugImplementation("androidx.compose.ui:ui-tooling")
 }
