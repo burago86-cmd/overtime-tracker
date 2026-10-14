@@ -16,9 +16,6 @@ data class Product(
     val price: Int
 )
 
-/**
- * Одна запись о переработке.
- */
 data class Entry(
     val id: String,
     val date: LocalDate,
@@ -27,11 +24,11 @@ data class Entry(
     val startTime: LocalTime? = null,
     val endTime: LocalTime? = null,
 
-    // Выходной ли это день (сб/вс или вручную отмечен)
     val isDayOff: Boolean = false,
-
-    // Обед в минутах (только для выходных)
     val lunchMinutes: Int = 0,
+
+    // Индивидуальная ставка за час. null = использовать ставку из настроек.
+    val customHourRate: Int? = null,
 
     val productId: String? = null,
     val productName: String = "",
@@ -41,8 +38,11 @@ data class Entry(
     val comment: String = ""
 ) {
     /**
-     * Полная длительность смены в минутах (без вычета обеда).
+     * Ставка, которая реально применяется к этой записи.
      */
+    fun effectiveHourRate(defaultRate: Int): Int =
+        customHourRate ?: defaultRate
+
     fun rawDurationMinutes(): Int {
         val s = startTime ?: return 0
         val e = endTime ?: return 0
@@ -52,9 +52,6 @@ data class Entry(
         else (24 * 60 - startMin) + endMin
     }
 
-    /**
-     * Итоговая длительность с вычетом обеда (если выходной).
-     */
     fun durationMinutes(): Int {
         val raw = rawDurationMinutes()
         if (raw == 0) return 0
@@ -75,18 +72,16 @@ data class Entry(
         }
     }
 
-    fun total(hourRate: Int): Int {
+    fun total(defaultHourRate: Int): Int {
+        val rate = effectiveHourRate(defaultHourRate)
         val hoursMoney = if (type == EntryType.HOURS || type == EntryType.MIXED)
-            (durationHours() * hourRate).toInt() else 0
+            (durationHours() * rate).toInt() else 0
         val productsMoney = if (type == EntryType.PRODUCTS || type == EntryType.MIXED)
             quantity * productPrice else 0
         return hoursMoney + productsMoney
     }
 
     companion object {
-        /**
-         * Автоматически определяем выходной по календарю.
-         */
         fun isWeekend(date: LocalDate): Boolean {
             val dow = date.dayOfWeek
             return dow == DayOfWeek.SATURDAY || dow == DayOfWeek.SUNDAY
@@ -99,7 +94,9 @@ data class AppSettings(
     val language: String = "ru",
     val currency: String = "BYN",
     val darkTheme: Boolean = true,
-    val products: List<Product> = emptyList()
+    val products: List<Product> = emptyList(),
+    // Показывать ли деньги (ставка, цена, сумма) в предпросмотре и Excel
+    val showMoneyInExport: Boolean = true
 )
 
 data class MonthSummary(
