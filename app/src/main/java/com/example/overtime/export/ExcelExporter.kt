@@ -24,6 +24,8 @@ object ExcelExporter {
         val lang = settings.language
         fun t(key: String) = Strings.t(key, lang)
 
+        val showMoney = settings.showMoneyInExport
+
         val monthEntries = entries
             .filter { YearMonth.from(it.date) == month }
             .sortedBy { it.date }
@@ -34,8 +36,8 @@ object ExcelExporter {
         val workbook = Workbook(fos, "OvertimeTracker", "1.0")
         val sheet: Worksheet = workbook.newWorksheet("Report")
 
-        // Заголовки на языке приложения
-        val headers = listOf(
+        // Формируем список колонок
+        val headers = mutableListOf(
             t("date"),
             t("type"),
             t("start_time"),
@@ -44,11 +46,14 @@ object ExcelExporter {
             t("lunch_minutes"),
             t("total_time_h"),
             t("product"),
-            t("quantity"),
-            t("hour_rate"),
-            t("product_price"),
-            t("total_money")
+            t("quantity")
         )
+        if (showMoney) {
+            headers.add(t("hour_rate"))
+            headers.add(t("product_price"))
+            headers.add(t("total_money"))
+        }
+
         headers.forEachIndexed { col, title ->
             sheet.value(0, col, title)
             sheet.style(0, col).bold().set()
@@ -58,23 +63,31 @@ object ExcelExporter {
         var totalMinutes = 0
         var totalMoney = 0
 
+        // Индексы, чтобы не путаться
+        val idxTotalTime = 6
+        val idxTotalMoney = if (showMoney) 11 else -1
+
         monthEntries.forEach { e ->
-            sheet.value(row, 0, e.date.toString())
-            sheet.value(row, 1, when (e.type) {
+            var col = 0
+            sheet.value(row, col++, e.date.toString())
+            sheet.value(row, col++, when (e.type) {
                 EntryType.HOURS -> t("type_hours")
                 EntryType.PRODUCTS -> t("type_products")
                 EntryType.MIXED -> t("type_mixed")
             })
-            sheet.value(row, 2, e.startTime?.toString() ?: "")
-            sheet.value(row, 3, e.endTime?.toString() ?: "")
-            sheet.value(row, 4, if (e.isDayOff) t("yes") else t("no"))
-            sheet.value(row, 5, if (e.isDayOff && e.lunchMinutes > 0) e.lunchMinutes else 0)
-            sheet.value(row, 6, e.durationHours())
-            sheet.value(row, 7, e.productName)
-            sheet.value(row, 8, e.quantity)
-            sheet.value(row, 9, settings.hourRate)
-            sheet.value(row, 10, e.productPrice)
-            sheet.value(row, 11, e.total(settings.hourRate))
+            sheet.value(row, col++, e.startTime?.toString() ?: "")
+            sheet.value(row, col++, e.endTime?.toString() ?: "")
+            sheet.value(row, col++, if (e.isDayOff) t("yes") else t("no"))
+            sheet.value(row, col++, if (e.isDayOff && e.lunchMinutes > 0) e.lunchMinutes else 0)
+            sheet.value(row, col++, e.durationHours())
+            sheet.value(row, col++, e.productName)
+            sheet.value(row, col++, e.quantity)
+
+            if (showMoney) {
+                sheet.value(row, col++, e.effectiveHourRate(settings.hourRate))
+                sheet.value(row, col++, e.productPrice)
+                sheet.value(row, col++, e.total(settings.hourRate))
+            }
 
             if (e.type == EntryType.HOURS || e.type == EntryType.MIXED) {
                 totalMinutes += e.durationMinutes()
@@ -86,10 +99,13 @@ object ExcelExporter {
         // Итого
         sheet.value(row + 1, 0, t("month_total").uppercase())
         sheet.style(row + 1, 0).bold().set()
-        sheet.value(row + 1, 6, totalMinutes / 60.0)
-        sheet.value(row + 1, 11, totalMoney)
-        sheet.style(row + 1, 6).bold().set()
-        sheet.style(row + 1, 11).bold().set()
+        sheet.value(row + 1, idxTotalTime, totalMinutes / 60.0)
+        sheet.style(row + 1, idxTotalTime).bold().set()
+
+        if (showMoney) {
+            sheet.value(row + 1, idxTotalMoney, totalMoney)
+            sheet.style(row + 1, idxTotalMoney).bold().set()
+        }
 
         workbook.finish()
         fos.close()
