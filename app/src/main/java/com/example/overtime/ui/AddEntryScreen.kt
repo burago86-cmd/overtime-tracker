@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -32,6 +33,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -63,6 +65,24 @@ fun AddEntryScreen(
     var startTime by remember { mutableStateOf(existing?.startTime ?: LocalTime.of(18, 0)) }
     var endTime by remember { mutableStateOf(existing?.endTime ?: LocalTime.of(21, 0)) }
     var comment by remember { mutableStateOf(existing?.comment ?: "") }
+
+    // Выходной и обед
+    var isDayOff by remember {
+        mutableStateOf(existing?.isDayOff ?: Entry.isWeekend(date))
+    }
+    var lunchText by remember {
+        mutableStateOf(existing?.lunchMinutes?.takeIf { it > 0 }?.toString() ?: "")
+    }
+
+    // Автоматически пересчитываем isDayOff при смене даты
+    // (только если пользователь ещё не переопределил вручную)
+    var dayOffManuallyChanged by remember { mutableStateOf(existing != null) }
+
+    LaunchedEffect(date) {
+        if (!dayOffManuallyChanged) {
+            isDayOff = Entry.isWeekend(date)
+        }
+    }
 
     var productId by remember { mutableStateOf(existing?.productId) }
     var quantityText by remember { mutableStateOf(existing?.quantity?.toString() ?: "") }
@@ -97,6 +117,8 @@ fun AddEntryScreen(
                             type = type,
                             startTime = startTime,
                             endTime = endTime,
+                            isDayOff = isDayOff,
+                            lunchMinutes = lunchText.toIntOrNull() ?: 0,
                             productId = productId,
                             quantity = quantityText.toIntOrNull() ?: 0,
                             comment = comment
@@ -129,7 +151,9 @@ fun AddEntryScreen(
                 onClick = {
                     DatePickerDialog(
                         context,
-                        { _, y, m, d -> date = LocalDate.of(y, m + 1, d) },
+                        { _, y, m, d ->
+                            date = LocalDate.of(y, m + 1, d)
+                        },
                         date.year, date.monthValue - 1, date.dayOfMonth
                     ).show()
                 },
@@ -138,6 +162,39 @@ fun AddEntryScreen(
                 Text(appState.t("select_date"))
             }
 
+            // ---------- Галочка «Выходной» ----------
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Checkbox(
+                            checked = isDayOff,
+                            onCheckedChange = {
+                                isDayOff = it
+                                dayOffManuallyChanged = true
+                            }
+                        )
+                        Text(
+                            text = appState.t("day_off"),
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Text(
+                        text = appState.t("holiday_hint"),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            // ---------- Тип ----------
             Text(
                 text = appState.t("type"),
                 style = MaterialTheme.typography.titleSmall,
@@ -161,6 +218,7 @@ fun AddEntryScreen(
                 )
             }
 
+            // ---------- Время ----------
             if (type == EntryType.HOURS || type == EntryType.MIXED) {
                 Card(
                     colors = CardDefaults.cardColors(
@@ -204,10 +262,25 @@ fun AddEntryScreen(
                                 Text("${appState.t("end_time")}: ${endTime.format(timeFormatter)}")
                             }
                         }
+
+                        // ---------- Обед (только для выходных) ----------
+                        if (isDayOff) {
+                            Spacer(Modifier.height(12.dp))
+                            OutlinedTextField(
+                                value = lunchText,
+                                onValueChange = { new ->
+                                    if (new.all { it.isDigit() }) lunchText = new
+                                },
+                                label = { Text(appState.t("lunch_minutes")) },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
+                            )
+                        }
                     }
                 }
             }
 
+            // ---------- Изделие ----------
             if (type == EntryType.PRODUCTS || type == EntryType.MIXED) {
                 Card(
                     colors = CardDefaults.cardColors(
@@ -293,6 +366,8 @@ fun AddEntryScreen(
                         type = type,
                         startTime = startTime,
                         endTime = endTime,
+                        isDayOff = isDayOff,
+                        lunchMinutes = lunchText.toIntOrNull() ?: 0,
                         productId = productId,
                         quantity = quantityText.toIntOrNull() ?: 0,
                         comment = comment
@@ -332,6 +407,8 @@ private fun saveEntry(
     type: EntryType,
     startTime: LocalTime,
     endTime: LocalTime,
+    isDayOff: Boolean,
+    lunchMinutes: Int,
     productId: String?,
     quantity: Int,
     comment: String
@@ -344,6 +421,8 @@ private fun saveEntry(
         type = type,
         startTime = if (type == EntryType.HOURS || type == EntryType.MIXED) startTime else null,
         endTime = if (type == EntryType.HOURS || type == EntryType.MIXED) endTime else null,
+        isDayOff = isDayOff,
+        lunchMinutes = if (isDayOff) lunchMinutes else 0,
         productId = if (type == EntryType.PRODUCTS || type == EntryType.MIXED) productId else null,
         productName = if (type == EntryType.PRODUCTS || type == EntryType.MIXED) product?.name ?: "" else "",
         productPrice = if (type == EntryType.PRODUCTS || type == EntryType.MIXED) product?.price ?: 0 else 0,
