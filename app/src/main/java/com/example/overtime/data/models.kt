@@ -2,7 +2,6 @@ package com.example.overtime.data
 
 import java.time.LocalDate
 import java.time.LocalTime
-import java.time.temporal.ChronoUnit
 
 /**
  * Тип записи: чем именно занимался в переработке.
@@ -19,23 +18,20 @@ enum class EntryType {
 data class Product(
     val id: String,
     val name: String,
-    val price: Int           // цена в BYN (целое)
+    val price: Int           // цена (целое)
 )
 
 /**
  * Одна запись о переработке.
- * Может содержать часы (смена startTime..endTime), изделия или и то, и другое.
  */
 data class Entry(
     val id: String,
     val date: LocalDate,
     val type: EntryType,
 
-    // Поля для типа HOURS и MIXED
     val startTime: LocalTime? = null,   // например, 20:00
     val endTime: LocalTime? = null,     // например, 23:00
 
-    // Поля для типа PRODUCTS и MIXED
     val productId: String? = null,
     val productName: String = "",
     val productPrice: Int = 0,
@@ -43,11 +39,6 @@ data class Entry(
 
     val comment: String = ""
 ) {
-    /**
-     * Длительность смены в минутах.
-     * Если смена переходит через полночь (22:00 → 01:30) — тоже считает корректно.
-     * Возвращает 0, если времён нет.
-     */
     fun durationMinutes(): Int {
         val s = startTime ?: return 0
         val e = endTime ?: return 0
@@ -57,14 +48,8 @@ data class Entry(
         else (24 * 60 - startMin) + endMin
     }
 
-    /**
-     * Длительность в часах (для отображения).
-     */
     fun durationHours(): Double = durationMinutes() / 60.0
 
-    /**
-     * Красивое отображение длительности: "2 ч 30 мин".
-     */
     fun durationText(): String {
         val m = durationMinutes()
         val h = m / 60
@@ -76,9 +61,6 @@ data class Entry(
         }
     }
 
-    /**
-     * Сколько денег принесла эта запись.
-     */
     fun total(hourRate: Int): Int {
         val hoursMoney = if (type == EntryType.HOURS || type == EntryType.MIXED)
             (durationHours() * hourRate).toInt() else 0
@@ -94,6 +76,7 @@ data class Entry(
 data class AppSettings(
     val hourRate: Int = 10,
     val language: String = "ru",              // "ru" или "en"
+    val currency: String = "BYN",             // "BYN" или "USD"
     val darkTheme: Boolean = true,
     val products: List<Product> = emptyList()
 )
@@ -104,7 +87,7 @@ data class AppSettings(
 data class MonthSummary(
     val totalMinutes: Int = 0,
     val totalMoney: Int = 0,
-    val productsCount: Map<String, Int> = emptyMap()  // имя изделия -> количество
+    val productsCount: Map<String, Int> = emptyMap()
 ) {
     fun hoursText(): String {
         val h = totalMinutes / 60
