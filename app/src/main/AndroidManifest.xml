@@ -28,9 +28,7 @@
 
     </application>
 
-    <!-- ▼▼▼ ВОТ ЭТО ДОБАВИЛИ ▼▼▼ -->
     <queries>
-         
         <intent>
             <action android:name="android.intent.action.SEND" />
             <data android:mimeType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
