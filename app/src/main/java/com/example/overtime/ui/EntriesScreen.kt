@@ -357,6 +357,15 @@ private fun EntryCard(
                     )
                 }
 
+                if (entry.customHourRate != null) {
+                    Text(
+                        text = "★ ${appState.t("hour_rate")}: ${entry.customHourRate} ${appState.currencyLabel()}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.tertiary,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
                 if (entry.comment.isNotBlank()) {
                     Text(
                         text = entry.comment,
