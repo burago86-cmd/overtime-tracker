@@ -6,13 +6,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.example.overtime.data.AppSettings
 import com.example.overtime.data.Entry
+import com.example.overtime.data.Product
 import com.example.overtime.data.Storage
 import com.example.overtime.util.Strings
 
-/**
- * Глобальное состояние приложения.
- * Держит записи и настройки, сохраняет в JSON при каждом изменении.
- */
 class AppState(context: Context) {
 
     private val storage = Storage(context)
@@ -29,12 +26,18 @@ class AppState(context: Context) {
         settings = loadedSettings
     }
 
-    // --- Язык и тема ---
-
     fun t(key: String): String = Strings.t(key, settings.language)
+
+    /** "BYN" или "USD" — то, что показываем в интерфейсе. */
+    fun currencyLabel(): String = if (settings.currency == "USD") "USD" else "BYN"
 
     fun setLanguage(lang: String) {
         settings = settings.copy(language = lang)
+        persist()
+    }
+
+    fun setCurrency(curr: String) {
+        settings = settings.copy(currency = curr)
         persist()
     }
 
@@ -42,8 +45,6 @@ class AppState(context: Context) {
         settings = settings.copy(darkTheme = dark)
         persist()
     }
-
-    // --- Записи ---
 
     fun addEntry(entry: Entry) {
         entries = (entries + entry).sortedByDescending { it.date }
@@ -61,15 +62,13 @@ class AppState(context: Context) {
         persist()
     }
 
-    // --- Настройки ---
-
     fun setHourRate(rate: Int) {
         settings = settings.copy(hourRate = rate)
         persist()
     }
 
     fun addProduct(name: String, price: Int) {
-        val newProduct = com.example.overtime.data.Product(
+        val newProduct = Product(
             id = Storage.newId(),
             name = name,
             price = price
@@ -91,8 +90,6 @@ class AppState(context: Context) {
         settings = settings.copy(products = settings.products.filterNot { it.id == id })
         persist()
     }
-
-    // --- Сохранение ---
 
     private fun persist() {
         storage.save(entries, settings)
