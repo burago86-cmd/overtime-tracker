@@ -61,9 +61,10 @@ fun PreviewDialog(
                         .horizontalScroll(rememberScrollState())
                 ) {
                     HeaderCell(appState.t("date"), 75.dp)
-                    HeaderCell(appState.t("type"), 60.dp)
+                    HeaderCell(appState.t("type"), 70.dp)
                     HeaderCell(appState.t("start_time"), 55.dp)
                     HeaderCell(appState.t("end_time"), 55.dp)
+                    HeaderCell(appState.t("lunch_minutes"), 65.dp)
                     HeaderCell(appState.t("total_time"), 80.dp)
                     HeaderCell(appState.t("product"), 90.dp)
                     HeaderCell(appState.t("quantity"), 50.dp)
@@ -87,17 +88,24 @@ fun PreviewDialog(
                             .padding(vertical = 2.dp)
                             .horizontalScroll(rememberScrollState())
                     ) {
-                        BodyCell(e.date.toString(), 75.dp)
+                        BodyCell(
+                            e.date.toString() + if (e.isDayOff) " *" else "",
+                            75.dp
+                        )
                         BodyCell(
                             when (e.type) {
                                 EntryType.HOURS -> appState.t("type_hours")
                                 EntryType.PRODUCTS -> appState.t("type_products")
                                 EntryType.MIXED -> appState.t("type_mixed")
                             },
-                            60.dp
+                            70.dp
                         )
                         BodyCell(e.startTime?.toString() ?: "—", 55.dp)
                         BodyCell(e.endTime?.toString() ?: "—", 55.dp)
+                        BodyCell(
+                            if (e.isDayOff && e.lunchMinutes > 0) e.lunchMinutes.toString() else "—",
+                            65.dp
+                        )
                         BodyCell(if (durH > 0) "%.2f".format(durH) else "—", 80.dp)
                         BodyCell(e.productName.ifBlank { "—" }, 90.dp)
                         BodyCell(if (e.quantity > 0) e.quantity.toString() else "—", 50.dp)
