@@ -19,6 +19,7 @@ data class EntryDto(
     val endTime: String? = null,
     val isDayOff: Boolean = false,
     val lunchMinutes: Int = 0,
+    val customHourRate: Int? = null,
     val productId: String? = null,
     val productName: String = "",
     val productPrice: Int = 0,
@@ -39,7 +40,8 @@ data class SettingsDto(
     val language: String = "ru",
     val currency: String = "BYN",
     val darkTheme: Boolean = true,
-    val products: List<ProductDto> = emptyList()
+    val products: List<ProductDto> = emptyList(),
+    val showMoneyInExport: Boolean = true
 )
 
 @Serializable
@@ -81,6 +83,7 @@ class Storage(private val context: Context) {
         endTime = endTime?.toString(),
         isDayOff = isDayOff,
         lunchMinutes = lunchMinutes,
+        customHourRate = customHourRate,
         productId = productId,
         productName = productName,
         productPrice = productPrice,
@@ -97,6 +100,7 @@ class Storage(private val context: Context) {
             endTime = endTime?.let { LocalTime.parse(it) },
             isDayOff = isDayOff,
             lunchMinutes = lunchMinutes,
+            customHourRate = customHourRate,
             productId = productId,
             productName = productName,
             productPrice = productPrice,
@@ -110,7 +114,8 @@ class Storage(private val context: Context) {
         language = language,
         currency = currency,
         darkTheme = darkTheme,
-        products = products.map { ProductDto(it.id, it.name, it.price) }
+        products = products.map { ProductDto(it.id, it.name, it.price) },
+        showMoneyInExport = showMoneyInExport
     )
 
     private fun SettingsDto.toSettings() = AppSettings(
@@ -118,7 +123,8 @@ class Storage(private val context: Context) {
         language = language,
         currency = currency,
         darkTheme = darkTheme,
-        products = products.map { Product(it.id, it.name, it.price) }
+        products = products.map { Product(it.id, it.name, it.price) },
+        showMoneyInExport = showMoneyInExport
     )
 
     companion object {
