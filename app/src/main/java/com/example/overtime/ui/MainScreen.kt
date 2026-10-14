@@ -19,10 +19,29 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.example.overtime.AppState
+import com.example.overtime.data.Entry
 
 @Composable
 fun MainScreen(appState: AppState) {
     var tab by remember { mutableStateOf(0) }
+
+    // editingEntry == null и showEditor == false → ничего не открыто
+    // showEditor == true и editingEntry == null → создание новой
+    // showEditor == true и editingEntry != null → редактирование
+    var showEditor by remember { mutableStateOf(false) }
+    var editingEntry by remember { mutableStateOf<Entry?>(null) }
+
+    if (showEditor) {
+        AddEntryScreen(
+            appState = appState,
+            existing = editingEntry,
+            onDone = {
+                showEditor = false
+                editingEntry = null
+            }
+        )
+        return
+    }
 
     Scaffold(
         bottomBar = {
@@ -45,12 +64,26 @@ fun MainScreen(appState: AppState) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding),
-            contentAlignment = Alignment.Center
+                .padding(padding)
         ) {
             when (tab) {
-                0 -> Text("Здесь будет список записей")
-                1 -> Text("Здесь будут настройки")
+                0 -> EntriesScreen(
+                    appState = appState,
+                    onAddClick = {
+                        editingEntry = null
+                        showEditor = true
+                    },
+                    onEditClick = { entry ->
+                        editingEntry = entry
+                        showEditor = true
+                    }
+                )
+                1 -> Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Здесь будут настройки")
+                }
             }
         }
     }
