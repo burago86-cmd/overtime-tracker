@@ -53,7 +53,7 @@ object ExcelExporter {
             sheet.value(row, 1, e.type.name)
             sheet.value(row, 2, e.startTime?.toString() ?: "")
             sheet.value(row, 3, e.endTime?.toString() ?: "")
-            sheet.value(row, 4, e.durationMinutes())
+            sheet.value(row, 4, e.durationHours())
             sheet.value(row, 5, e.productName)
             sheet.value(row, 6, e.quantity)
             sheet.value(row, 7, settings.hourRate)
@@ -68,9 +68,9 @@ object ExcelExporter {
         }
 
         // Итоги
-        sheet.value(row + 1, 0, "TOTAL")
+          sheet.value(row + 1, 0, "TOTAL")
         sheet.style(row + 1, 0).bold().set()
-        sheet.value(row + 1, 4, totalMinutes)
+        sheet.value(row + 1, 4, totalMinutes / 60.0)
         sheet.value(row + 1, 9, totalMoney)
         sheet.style(row + 1, 4).bold().set()
         sheet.style(row + 1, 9).bold().set()
