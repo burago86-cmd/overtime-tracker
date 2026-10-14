@@ -42,6 +42,7 @@ import com.example.overtime.data.Entry
 import com.example.overtime.data.EntryType
 import com.example.overtime.data.MonthSummary
 import com.example.overtime.export.ExcelExporter
+import java.io.File
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -58,12 +59,35 @@ fun EntriesScreen(
     val hourRate = appState.settings.hourRate
 
     var selectedMonth by remember { mutableStateOf(YearMonth.now()) }
+    var showPreview by remember { mutableStateOf(false) }
+    var previewFile by remember { mutableStateOf<File?>(null) }
 
     val monthEntries = entries.filter {
         YearMonth.from(it.date) == selectedMonth
     }
 
     val summary = calculateSummary(monthEntries, hourRate)
+
+    // --- Диалог предпросмотра ---
+    if (showPreview && previewFile != null) {
+        PreviewDialog(
+            appState = appState,
+            month = selectedMonth,
+            monthEntries = monthEntries,
+            onDismiss = {
+                showPreview = false
+                previewFile = null
+            },
+            onOpen = {
+                val f = previewFile
+                if (f != null) ExcelExporter.openReport(context, f)
+            },
+            onShare = {
+                val f = previewFile
+                if (f != null) ExcelExporter.shareReport(context, f)
+            }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -85,7 +109,8 @@ fun EntriesScreen(
                                     settings = appState.settings,
                                     month = selectedMonth
                                 )
-                                ExcelExporter.shareReport(context, file)
+                                previewFile = file
+                                showPreview = true
                             } catch (e: Exception) {
                                 Toast.makeText(
                                     context,
@@ -221,7 +246,7 @@ private fun SummaryCard(
                 )
                 SummaryItem(
                     label = appState.t("total_money"),
-                    value = "${summary.totalMoney} ${appState.t("currency")}"
+                    value = "${summary.totalMoney} ${appState.currencyLabel()}"
                 )
             }
 
@@ -326,7 +351,7 @@ private fun EntryCard(
 
             Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    text = "${entry.total(hourRate)} ${appState.t("currency")}",
+                    text = "${entry.total(hourRate)} ${appState.currencyLabel()}",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
