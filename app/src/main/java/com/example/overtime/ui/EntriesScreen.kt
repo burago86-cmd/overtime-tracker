@@ -42,7 +42,6 @@ import com.example.overtime.data.Entry
 import com.example.overtime.data.EntryType
 import com.example.overtime.data.MonthSummary
 import com.example.overtime.export.ExcelExporter
-import java.io.File
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -60,7 +59,6 @@ fun EntriesScreen(
 
     var selectedMonth by remember { mutableStateOf(YearMonth.now()) }
     var showPreview by remember { mutableStateOf(false) }
-    var previewFile by remember { mutableStateOf<File?>(null) }
 
     val monthEntries = entries.filter {
         YearMonth.from(it.date) == selectedMonth
@@ -68,22 +66,46 @@ fun EntriesScreen(
 
     val summary = calculateSummary(monthEntries, hourRate)
 
-    if (showPreview && previewFile != null) {
+    if (showPreview) {
         PreviewDialog(
             appState = appState,
             month = selectedMonth,
             monthEntries = monthEntries,
-            onDismiss = {
-                showPreview = false
-                previewFile = null
-            },
+            onDismiss = { showPreview = false },
             onOpen = {
-                val f = previewFile
-                if (f != null) ExcelExporter.openReport(context, f)
+                try {
+                    // Генерируем файл ПРЯМО СЕЙЧАС, с актуальными настройками
+                    val file = ExcelExporter.buildReport(
+                        context = context,
+                        entries = entries,
+                        settings = appState.settings,
+                        month = selectedMonth
+                    )
+                    ExcelExporter.openReport(context, file)
+                } catch (e: Exception) {
+                    Toast.makeText(
+                        context,
+                        "Ошибка: ${e.message}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
             },
             onShare = {
-                val f = previewFile
-                if (f != null) ExcelExporter.shareReport(context, f)
+                try {
+                    val file = ExcelExporter.buildReport(
+                        context = context,
+                        entries = entries,
+                        settings = appState.settings,
+                        month = selectedMonth
+                    )
+                    ExcelExporter.shareReport(context, file)
+                } catch (e: Exception) {
+                    Toast.makeText(
+                        context,
+                        "Ошибка: ${e.message}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
             }
         )
     }
@@ -101,22 +123,7 @@ fun EntriesScreen(
                                 Toast.LENGTH_SHORT
                             ).show()
                         } else {
-                            try {
-                                val file = ExcelExporter.buildReport(
-                                    context = context,
-                                    entries = entries,
-                                    settings = appState.settings,
-                                    month = selectedMonth
-                                )
-                                previewFile = file
-                                showPreview = true
-                            } catch (e: Exception) {
-                                Toast.makeText(
-                                    context,
-                                    "Ошибка: ${e.message}",
-                                    Toast.LENGTH_LONG
-                                ).show()
-                            }
+                            showPreview = true
                         }
                     }) {
                         Icon(
