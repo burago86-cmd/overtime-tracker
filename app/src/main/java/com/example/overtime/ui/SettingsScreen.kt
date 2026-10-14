@@ -18,7 +18,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -41,12 +40,10 @@ import com.example.overtime.data.Product
 @Composable
 fun SettingsScreen(appState: AppState) {
 
-    // Локальное состояние для редактирования ставки
     var hourRateText by remember {
         mutableStateOf(appState.settings.hourRate.toString())
     }
 
-    // Состояние диалога для изделия
     var showProductDialog by remember { mutableStateOf(false) }
     var editingProduct by remember { mutableStateOf<Product?>(null) }
 
@@ -70,7 +67,7 @@ fun SettingsScreen(appState: AppState) {
                 Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
-                            text = appState.t("hour_rate"),
+                            text = "${appState.t("hour_rate")} (${appState.currencyLabel()})",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold
                         )
@@ -92,6 +89,34 @@ fun SettingsScreen(appState: AppState) {
                                 appState.setHourRate(rate)
                             }) {
                                 Text(appState.t("save"))
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ---------- Валюта ----------
+            item {
+                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = appState.t("currency"),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(
+                                onClick = { appState.setCurrency("BYN") },
+                                enabled = appState.settings.currency != "BYN"
+                            ) {
+                                Text("BYN")
+                            }
+                            Button(
+                                onClick = { appState.setCurrency("USD") },
+                                enabled = appState.settings.currency != "USD"
+                            ) {
+                                Text("USD")
                             }
                         }
                     }
@@ -196,7 +221,7 @@ fun SettingsScreen(appState: AppState) {
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    text = "${product.price} ${appState.t("currency")}",
+                                    text = "${product.price} ${appState.currencyLabel()}",
                                     style = MaterialTheme.typography.bodySmall
                                 )
                             }
@@ -222,7 +247,6 @@ fun SettingsScreen(appState: AppState) {
         }
     }
 
-    // ---------- Диалог добавления/редактирования изделия ----------
     if (showProductDialog) {
         ProductDialog(
             appState = appState,
@@ -275,7 +299,7 @@ private fun ProductDialog(
                     onValueChange = { new ->
                         if (new.all { it.isDigit() }) priceText = new
                     },
-                    label = { Text(appState.t("product_price")) },
+                    label = { Text("${appState.t("product_price")} (${appState.currencyLabel()})") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
