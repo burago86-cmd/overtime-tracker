@@ -58,7 +58,6 @@ fun AddEntryScreen(
 ) {
     val context = LocalContext.current
 
-    // --- Состояние формы ---
     var date by remember { mutableStateOf(existing?.date ?: LocalDate.now()) }
     var type by remember { mutableStateOf(existing?.type ?: EntryType.HOURS) }
     var startTime by remember { mutableStateOf(existing?.startTime ?: LocalTime.of(18, 0)) }
@@ -70,6 +69,7 @@ fun AddEntryScreen(
     var productDropdownExpanded by remember { mutableStateOf(false) }
 
     val products = appState.settings.products
+    val currency = appState.currencyLabel()
 
     val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
     val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
@@ -118,7 +118,6 @@ fun AddEntryScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
 
-            // ---------- Дата ----------
             OutlinedTextField(
                 value = date.format(dateFormatter),
                 onValueChange = { },
@@ -139,7 +138,6 @@ fun AddEntryScreen(
                 Text(appState.t("select_date"))
             }
 
-            // ---------- Тип ----------
             Text(
                 text = appState.t("type"),
                 style = MaterialTheme.typography.titleSmall,
@@ -163,7 +161,6 @@ fun AddEntryScreen(
                 )
             }
 
-            // ---------- Время (для HOURS и MIXED) ----------
             if (type == EntryType.HOURS || type == EntryType.MIXED) {
                 Card(
                     colors = CardDefaults.cardColors(
@@ -211,7 +208,6 @@ fun AddEntryScreen(
                 }
             }
 
-            // ---------- Изделие (для PRODUCTS и MIXED) ----------
             if (type == EntryType.PRODUCTS || type == EntryType.MIXED) {
                 Card(
                     colors = CardDefaults.cardColors(
@@ -239,7 +235,7 @@ fun AddEntryScreen(
                             ) {
                                 val selectedProduct = products.find { it.id == productId }
                                 OutlinedTextField(
-                                    value = selectedProduct?.let { "${it.name} — ${it.price} ${appState.t("currency")}" } ?: "",
+                                    value = selectedProduct?.let { "${it.name} — ${it.price} $currency" } ?: "",
                                     onValueChange = { },
                                     readOnly = true,
                                     label = { Text(appState.t("product")) },
@@ -254,7 +250,7 @@ fun AddEntryScreen(
                                 ) {
                                     products.forEach { p ->
                                         DropdownMenuItem(
-                                            text = { Text("${p.name} — ${p.price} ${appState.t("currency")}") },
+                                            text = { Text("${p.name} — ${p.price} $currency") },
                                             onClick = {
                                                 productId = p.id
                                                 productDropdownExpanded = false
@@ -279,7 +275,6 @@ fun AddEntryScreen(
                 }
             }
 
-            // ---------- Комментарий ----------
             OutlinedTextField(
                 value = comment,
                 onValueChange = { comment = it },
@@ -289,7 +284,6 @@ fun AddEntryScreen(
 
             Spacer(Modifier.height(16.dp))
 
-            // ---------- Кнопка сохранить ----------
             Button(
                 onClick = {
                     saveEntry(
@@ -342,7 +336,6 @@ private fun saveEntry(
     quantity: Int,
     comment: String
 ) {
-    // Находим выбранное изделие, чтобы зафиксировать имя и цену
     val product = appState.settings.products.find { it.id == productId }
 
     val newEntry = Entry(
