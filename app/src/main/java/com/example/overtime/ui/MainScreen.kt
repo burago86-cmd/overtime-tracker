@@ -66,18 +66,7 @@ fun MainScreen(appState: AppState) {
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            when (tab) {
-                0 -> EntriesScreen(
-                    appState = appState,
-                    onAddClick = {
-                        editingEntry = null
-                        showEditor = true
-                    },
-                    onEditClick = { entry ->
-                        editingEntry = entry
-                        showEditor = true
-                    }
-                )
+            -> SettingsScreen(appState = appState)
                 1 -> Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
