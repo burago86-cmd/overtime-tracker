@@ -36,7 +36,7 @@ object ExcelExporter {
         val workbook = Workbook(fos, "OvertimeTracker", "1.0")
         val sheet: Worksheet = workbook.newWorksheet("Report")
 
-        // Формируем список колонок
+        // Колонки: без заготовок и процентов — только готовые
         val headers = mutableListOf(
             t("date"),
             t("type"),
@@ -46,7 +46,7 @@ object ExcelExporter {
             t("lunch_minutes"),
             t("total_time_h"),
             t("product"),
-            t("quantity")
+            t("ready_qty")
         )
         if (showMoney) {
             headers.add(t("hour_rate"))
@@ -61,10 +61,11 @@ object ExcelExporter {
 
         var row = 1
         var totalMinutes = 0
+        var totalReady = 0
         var totalMoney = 0
 
-        // Индексы, чтобы не путаться
         val idxTotalTime = 6
+        val idxReady = 8
         val idxTotalMoney = if (showMoney) 11 else -1
 
         monthEntries.forEach { e ->
@@ -92,6 +93,7 @@ object ExcelExporter {
             if (e.type == EntryType.HOURS || e.type == EntryType.MIXED) {
                 totalMinutes += e.durationMinutes()
             }
+            totalReady += e.quantity
             totalMoney += e.total(settings.hourRate)
             row++
         }
@@ -101,6 +103,8 @@ object ExcelExporter {
         sheet.style(row + 1, 0).bold().set()
         sheet.value(row + 1, idxTotalTime, totalMinutes / 60.0)
         sheet.style(row + 1, idxTotalTime).bold().set()
+        sheet.value(row + 1, idxReady, totalReady)
+        sheet.style(row + 1, idxReady).bold().set()
 
         if (showMoney) {
             sheet.value(row + 1, idxTotalMoney, totalMoney)
