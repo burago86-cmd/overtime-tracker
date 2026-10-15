@@ -44,7 +44,13 @@ data class SettingsDto(
     val darkTheme: Boolean = true,
     val products: List<ProductDto> = emptyList(),
     val showMoneyInExport: Boolean = true,
-    val showProgressPercent: Boolean = false
+    val showProgressPercent: Boolean = false,
+    val pinEnabled: Boolean = false,
+    val pin: String = "",
+    val lockAfterMinutes: Int = 5,
+    val reminderEnabled: Boolean = false,
+    val reminderHour: Int = 21,
+    val reminderMinute: Int = 0
 )
 
 @Serializable
@@ -76,6 +82,10 @@ class Storage(private val context: Context) {
             settings = settings.toDto()
         )
         file.writeText(json.encodeToString(dto))
+    }
+
+    fun wipe() {
+        file.delete()
     }
 
     private fun Entry.toDto() = EntryDto(
@@ -123,7 +133,13 @@ class Storage(private val context: Context) {
         darkTheme = darkTheme,
         products = products.map { ProductDto(it.id, it.name, it.price) },
         showMoneyInExport = showMoneyInExport,
-        showProgressPercent = showProgressPercent
+        showProgressPercent = showProgressPercent,
+        pinEnabled = pinEnabled,
+        pin = pin,
+        lockAfterMinutes = lockAfterMinutes,
+        reminderEnabled = reminderEnabled,
+        reminderHour = reminderHour,
+        reminderMinute = reminderMinute
     )
 
     private fun SettingsDto.toSettings() = AppSettings(
@@ -133,7 +149,13 @@ class Storage(private val context: Context) {
         darkTheme = darkTheme,
         products = products.map { Product(it.id, it.name, it.price) },
         showMoneyInExport = showMoneyInExport,
-        showProgressPercent = showProgressPercent
+        showProgressPercent = showProgressPercent,
+        pinEnabled = pinEnabled,
+        pin = pin,
+        lockAfterMinutes = lockAfterMinutes,
+        reminderEnabled = reminderEnabled,
+        reminderHour = reminderHour,
+        reminderMinute = reminderMinute
     )
 
     companion object {
