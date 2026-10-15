@@ -81,18 +81,22 @@ fun AddEntryScreen(
         }
     }
 
-    // Индивидуальная ставка
     var customRateText by remember {
         mutableStateOf(existing?.customHourRate?.toString() ?: "")
     }
 
     var productId by remember { mutableStateOf(existing?.productId) }
-    var quantityText by remember { mutableStateOf(existing?.quantity?.toString() ?: "") }
+    var readyText by remember { mutableStateOf(existing?.quantity?.takeIf { it > 0 }?.toString() ?: "") }
+    var inProgressText by remember { mutableStateOf(existing?.inProgress?.takeIf { it > 0 }?.toString() ?: "") }
+    var progressPercentText by remember {
+        mutableStateOf(existing?.progressPercent?.toString() ?: "")
+    }
     var productDropdownExpanded by remember { mutableStateOf(false) }
 
     val products = appState.settings.products
     val currency = appState.currencyLabel()
     val defaultRate = appState.settings.hourRate
+    val showPercentField = appState.settings.showProgressPercent
 
     val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
     val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
@@ -124,7 +128,9 @@ fun AddEntryScreen(
                             lunchMinutes = lunchText.toIntOrNull() ?: 0,
                             customHourRate = customRateText.toIntOrNull(),
                             productId = productId,
-                            quantity = quantityText.toIntOrNull() ?: 0,
+                            quantity = readyText.toIntOrNull() ?: 0,
+                            inProgress = inProgressText.toIntOrNull() ?: 0,
+                            progressPercent = progressPercentText.toIntOrNull(),
                             comment = comment
                         )
                         onDone()
@@ -278,7 +284,7 @@ fun AddEntryScreen(
                             )
                         }
 
-                        // ---------- Индивидуальная ставка за час ----------
+                        // ---------- Индивидуальная ставка ----------
                         Spacer(Modifier.height(12.dp))
                         Text(
                             text = "${appState.t("hour_rate")} (${appState.currencyLabel()})",
@@ -373,14 +379,56 @@ fun AddEntryScreen(
 
                             Spacer(Modifier.height(8.dp))
 
+                            // Готово (шт) — за это платят
                             OutlinedTextField(
-                                value = quantityText,
+                                value = readyText,
                                 onValueChange = { new ->
-                                    if (new.all { it.isDigit() }) quantityText = new
+                                    if (new.all { it.isDigit() }) readyText = new
                                 },
-                                label = { Text(appState.t("quantity")) },
-                                modifier = Modifier.fillMaxWidth()
+                                label = { Text(appState.t("ready_qty")) },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
                             )
+
+                            Spacer(Modifier.height(8.dp))
+
+                            // В работе (шт) — только для тебя
+                            OutlinedTextField(
+                                value = inProgressText,
+                                onValueChange = { new ->
+                                    if (new.all { it.isDigit() }) inProgressText = new
+                                },
+                                label = { Text(appState.t("in_progress_qty")) },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
+                            )
+                            Text(
+                                text = appState.t("in_progress_hint"),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+
+                            // Проценты — если включено в настройках
+                            if (showPercentField) {
+                                Spacer(Modifier.height(8.dp))
+                                OutlinedTextField(
+                                    value = progressPercentText,
+                                    onValueChange = { new ->
+                                        if (new.all { it.isDigit() }) {
+                                            val v = new.toIntOrNull() ?: 0
+                                            if (v <= 100) progressPercentText = new
+                                        }
+                                    },
+                                    label = { Text(appState.t("progress_percent")) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = true
+                                )
+                                Text(
+                                    text = appState.t("progress_hint"),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
                 }
@@ -408,7 +456,9 @@ fun AddEntryScreen(
                         lunchMinutes = lunchText.toIntOrNull() ?: 0,
                         customHourRate = customRateText.toIntOrNull(),
                         productId = productId,
-                        quantity = quantityText.toIntOrNull() ?: 0,
+                        quantity = readyText.toIntOrNull() ?: 0,
+                        inProgress = inProgressText.toIntOrNull() ?: 0,
+                        progressPercent = progressPercentText.toIntOrNull(),
                         comment = comment
                     )
                     onDone()
@@ -451,26 +501,31 @@ private fun saveEntry(
     customHourRate: Int?,
     productId: String?,
     quantity: Int,
+    inProgress: Int,
+    progressPercent: Int?,
     comment: String
 ) {
     val product = appState.settings.products.find { it.id == productId }
 
-    // Если customHourRate == ставка из настроек — не сохраняем индивидуальную (null)
     val effectiveCustom = customHourRate?.takeIf { it != appState.settings.hourRate }
+    val isProductType = type == EntryType.PRODUCTS || type == EntryType.MIXED
+    val isHoursType = type == EntryType.HOURS || type == EntryType.MIXED
 
     val newEntry = Entry(
         id = existing?.id ?: Storage.newId(),
         date = date,
         type = type,
-        startTime = if (type == EntryType.HOURS || type == EntryType.MIXED) startTime else null,
-        endTime = if (type == EntryType.HOURS || type == EntryType.MIXED) endTime else null,
+        startTime = if (isHoursType) startTime else null,
+        endTime = if (isHoursType) endTime else null,
         isDayOff = isDayOff,
         lunchMinutes = if (isDayOff) lunchMinutes else 0,
-        customHourRate = if (type == EntryType.HOURS || type == EntryType.MIXED) effectiveCustom else null,
-        productId = if (type == EntryType.PRODUCTS || type == EntryType.MIXED) productId else null,
-        productName = if (type == EntryType.PRODUCTS || type == EntryType.MIXED) product?.name ?: "" else "",
-        productPrice = if (type == EntryType.PRODUCTS || type == EntryType.MIXED) product?.price ?: 0 else 0,
-        quantity = if (type == EntryType.PRODUCTS || type == EntryType.MIXED) quantity else 0,
+        customHourRate = if (isHoursType) effectiveCustom else null,
+        productId = if (isProductType) productId else null,
+        productName = if (isProductType) product?.name ?: "" else "",
+        productPrice = if (isProductType) product?.price ?: 0 else 0,
+        quantity = if (isProductType) quantity else 0,
+        inProgress = if (isProductType) inProgress else 0,
+        progressPercent = if (isProductType) progressPercent else null,
         comment = comment
     )
 
