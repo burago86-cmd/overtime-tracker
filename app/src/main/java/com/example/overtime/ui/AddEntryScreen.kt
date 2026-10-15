@@ -1,7 +1,6 @@
 package com.example.overtime.ui
 
 import android.app.DatePickerDialog
-import android.app.TimePickerDialog
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -95,6 +94,8 @@ fun AddEntryScreen(
     var productDropdownExpanded by remember { mutableStateOf(false) }
 
     var showCalculator by remember { mutableStateOf(false) }
+    var showStartPicker by remember { mutableStateOf(false) }
+    var showEndPicker by remember { mutableStateOf(false) }
 
     val products = appState.settings.products
     val currency = appState.currencyLabel()
@@ -104,7 +105,23 @@ fun AddEntryScreen(
     val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
     val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
 
-    // Диалог калькулятора
+    if (showStartPicker) {
+        WheelTimeDialog(
+            initialTime = startTime,
+            title = appState.t("start_time"),
+            onDismiss = { showStartPicker = false },
+            onConfirm = { startTime = it; showStartPicker = false }
+        )
+    }
+    if (showEndPicker) {
+        WheelTimeDialog(
+            initialTime = endTime,
+            title = appState.t("end_time"),
+            onDismiss = { showEndPicker = false },
+            onConfirm = { endTime = it; showEndPicker = false }
+        )
+    }
+
     if (showCalculator) {
         TimeCalculatorDialog(
             appState = appState,
@@ -114,13 +131,11 @@ fun AddEntryScreen(
             initialLunch = lunchText.toIntOrNull() ?: 0,
             onDismiss = { showCalculator = false },
             onCreateEntry = { start, end, dayOff, lunch ->
-                // Переносим данные в форму
                 startTime = start
                 endTime = end
                 isDayOff = dayOff
                 dayOffManuallyChanged = true
                 lunchText = if (lunch > 0) lunch.toString() else ""
-                // Меняем тип на HOURS, если сейчас не было времени
                 if (type == EntryType.PRODUCTS) {
                     type = EntryType.HOURS
                 }
@@ -198,7 +213,6 @@ fun AddEntryScreen(
                 Text(appState.t("select_date"))
             }
 
-            // Галочка «Выходной»
             Card(
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surfaceVariant
@@ -230,7 +244,6 @@ fun AddEntryScreen(
                 }
             }
 
-            // Тип
             Text(
                 text = appState.t("type"),
                 style = MaterialTheme.typography.titleSmall,
@@ -254,7 +267,6 @@ fun AddEntryScreen(
                 )
             }
 
-            // Время
             if (type == EntryType.HOURS || type == EntryType.MIXED) {
                 Card(
                     colors = CardDefaults.cardColors(
@@ -286,25 +298,13 @@ fun AddEntryScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Button(
-                                onClick = {
-                                    TimePickerDialog(
-                                        context,
-                                        { _, h, m -> startTime = LocalTime.of(h, m) },
-                                        startTime.hour, startTime.minute, true
-                                    ).show()
-                                },
+                                onClick = { showStartPicker = true },
                                 modifier = Modifier.weight(1f)
                             ) {
                                 Text("${appState.t("start_time")}: ${startTime.format(timeFormatter)}")
                             }
                             Button(
-                                onClick = {
-                                    TimePickerDialog(
-                                        context,
-                                        { _, h, m -> endTime = LocalTime.of(h, m) },
-                                        endTime.hour, endTime.minute, true
-                                    ).show()
-                                },
+                                onClick = { showEndPicker = true },
                                 modifier = Modifier.weight(1f)
                             ) {
                                 Text("${appState.t("end_time")}: ${endTime.format(timeFormatter)}")
@@ -324,7 +324,6 @@ fun AddEntryScreen(
                             )
                         }
 
-                        // Индивидуальная ставка
                         Spacer(Modifier.height(12.dp))
                         Text(
                             text = "${appState.t("hour_rate")} (${appState.currencyLabel()})",
@@ -364,7 +363,6 @@ fun AddEntryScreen(
                 }
             }
 
-            // Изделие
             if (type == EntryType.PRODUCTS || type == EntryType.MIXED) {
                 Card(
                     colors = CardDefaults.cardColors(
