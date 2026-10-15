@@ -1,6 +1,5 @@
 package com.example.overtime.ui
 
-import android.app.TimePickerDialog
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -38,16 +37,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.overtime.AppState
 import com.example.overtime.data.Product
+import java.time.LocalTime
 
 @Composable
 fun SettingsScreen(appState: AppState) {
-    val context = LocalContext.current
-
     var hourRateText by remember { mutableStateOf(appState.settings.hourRate.toString()) }
     var showProductDialog by remember { mutableStateOf(false) }
     var editingProduct by remember { mutableStateOf<Product?>(null) }
 
     var showSetPinDialog by remember { mutableStateOf(false) }
+    var showReminderTimePicker by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -64,7 +63,6 @@ fun SettingsScreen(appState: AppState) {
 
         LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
 
-            // Ставка за час
             item {
                 Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
                     Column(modifier = Modifier.padding(16.dp)) {
@@ -97,7 +95,6 @@ fun SettingsScreen(appState: AppState) {
                 }
             }
 
-            // Валюта
             item {
                 Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
                     Column(modifier = Modifier.padding(16.dp)) {
@@ -121,7 +118,6 @@ fun SettingsScreen(appState: AppState) {
                 }
             }
 
-            // Язык
             item {
                 Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
                     Column(modifier = Modifier.padding(16.dp)) {
@@ -145,7 +141,6 @@ fun SettingsScreen(appState: AppState) {
                 }
             }
 
-            // Тёмная тема
             item {
                 Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
                     Row(
@@ -168,7 +163,6 @@ fun SettingsScreen(appState: AppState) {
                 }
             }
 
-            // Проценты
             item {
                 Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
                     Column(modifier = Modifier.padding(16.dp)) {
@@ -263,15 +257,7 @@ fun SettingsScreen(appState: AppState) {
                             )
                         }
                         Spacer(Modifier.height(8.dp))
-                        Button(onClick = {
-                            TimePickerDialog(
-                                context,
-                                { _, h, m -> appState.setReminderTime(h, m) },
-                                appState.settings.reminderHour,
-                                appState.settings.reminderMinute,
-                                true
-                            ).show()
-                        }) {
+                        Button(onClick = { showReminderTimePicker = true }) {
                             Text(
                                 "%02d:%02d".format(
                                     appState.settings.reminderHour,
@@ -362,6 +348,21 @@ fun SettingsScreen(appState: AppState) {
         }
     }
 
+    if (showReminderTimePicker) {
+        WheelTimeDialog(
+            initialTime = LocalTime.of(
+                appState.settings.reminderHour,
+                appState.settings.reminderMinute
+            ),
+            title = appState.t("reminder"),
+            onDismiss = { showReminderTimePicker = false },
+            onConfirm = { time ->
+                appState.setReminderTime(time.hour, time.minute)
+                showReminderTimePicker = false
+            }
+        )
+    }
+
     if (showProductDialog) {
         ProductDialog(
             appState = appState,
@@ -400,8 +401,6 @@ private fun SetPinDialog(
     var pin1 by remember { mutableStateOf("") }
     var pin2 by remember { mutableStateOf("") }
     var error by remember { mutableStateOf("") }
-
-    val valid = pin1.length in 4..8 && pin1 == pin2
 
     AlertDialog(
         onDismissRequest = onDismiss,
