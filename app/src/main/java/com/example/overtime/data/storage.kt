@@ -24,6 +24,8 @@ data class EntryDto(
     val productName: String = "",
     val productPrice: Int = 0,
     val quantity: Int = 0,
+    val inProgress: Int = 0,
+    val progressPercent: Int? = null,
     val comment: String = ""
 )
 
@@ -41,7 +43,8 @@ data class SettingsDto(
     val currency: String = "BYN",
     val darkTheme: Boolean = true,
     val products: List<ProductDto> = emptyList(),
-    val showMoneyInExport: Boolean = true
+    val showMoneyInExport: Boolean = true,
+    val showProgressPercent: Boolean = false
 )
 
 @Serializable
@@ -88,6 +91,8 @@ class Storage(private val context: Context) {
         productName = productName,
         productPrice = productPrice,
         quantity = quantity,
+        inProgress = inProgress,
+        progressPercent = progressPercent,
         comment = comment
     )
 
@@ -105,6 +110,8 @@ class Storage(private val context: Context) {
             productName = productName,
             productPrice = productPrice,
             quantity = quantity,
+            inProgress = inProgress,
+            progressPercent = progressPercent,
             comment = comment
         )
     } catch (e: Exception) { null }
@@ -115,7 +122,8 @@ class Storage(private val context: Context) {
         currency = currency,
         darkTheme = darkTheme,
         products = products.map { ProductDto(it.id, it.name, it.price) },
-        showMoneyInExport = showMoneyInExport
+        showMoneyInExport = showMoneyInExport,
+        showProgressPercent = showProgressPercent
     )
 
     private fun SettingsDto.toSettings() = AppSettings(
@@ -124,7 +132,8 @@ class Storage(private val context: Context) {
         currency = currency,
         darkTheme = darkTheme,
         products = products.map { Product(it.id, it.name, it.price) },
-        showMoneyInExport = showMoneyInExport
+        showMoneyInExport = showMoneyInExport,
+        showProgressPercent = showProgressPercent
     )
 
     companion object {
