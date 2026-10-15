@@ -62,7 +62,7 @@ fun SettingsScreen(appState: AppState) {
 
         LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
 
-            // ---------- Ставка за час ----------
+            // Ставка за час
             item {
                 Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
                     Column(modifier = Modifier.padding(16.dp)) {
@@ -95,7 +95,7 @@ fun SettingsScreen(appState: AppState) {
                 }
             }
 
-            // ---------- Валюта ----------
+            // Валюта
             item {
                 Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
                     Column(modifier = Modifier.padding(16.dp)) {
@@ -109,21 +109,17 @@ fun SettingsScreen(appState: AppState) {
                             Button(
                                 onClick = { appState.setCurrency("BYN") },
                                 enabled = appState.settings.currency != "BYN"
-                            ) {
-                                Text("BYN")
-                            }
+                            ) { Text("BYN") }
                             Button(
                                 onClick = { appState.setCurrency("USD") },
                                 enabled = appState.settings.currency != "USD"
-                            ) {
-                                Text("USD")
-                            }
+                            ) { Text("USD") }
                         }
                     }
                 }
             }
 
-            // ---------- Язык ----------
+            // Язык
             item {
                 Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
                     Column(modifier = Modifier.padding(16.dp)) {
@@ -137,21 +133,17 @@ fun SettingsScreen(appState: AppState) {
                             Button(
                                 onClick = { appState.setLanguage("ru") },
                                 enabled = appState.settings.language != "ru"
-                            ) {
-                                Text(appState.t("russian"))
-                            }
+                            ) { Text(appState.t("russian")) }
                             Button(
                                 onClick = { appState.setLanguage("en") },
                                 enabled = appState.settings.language != "en"
-                            ) {
-                                Text(appState.t("english"))
-                            }
+                            ) { Text(appState.t("english")) }
                         }
                     }
                 }
             }
 
-            // ---------- Тёмная тема ----------
+            // Тёмная тема
             item {
                 Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
                     Row(
@@ -174,7 +166,35 @@ fun SettingsScreen(appState: AppState) {
                 }
             }
 
-            // ---------- Справочник изделий ----------
+            // Тумблер «Показывать проценты»
+            item {
+                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = appState.t("show_progress_percent"),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Switch(
+                                checked = appState.settings.showProgressPercent,
+                                onCheckedChange = { appState.setShowProgressPercent(it) }
+                            )
+                        }
+                        Text(
+                            text = appState.t("show_progress_percent_hint"),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            // Справочник изделий
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
