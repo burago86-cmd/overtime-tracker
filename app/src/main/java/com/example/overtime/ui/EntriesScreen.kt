@@ -74,7 +74,6 @@ fun EntriesScreen(
             onDismiss = { showPreview = false },
             onOpen = {
                 try {
-                    // Генерируем файл ПРЯМО СЕЙЧАС, с актуальными настройками
                     val file = ExcelExporter.buildReport(
                         context = context,
                         entries = entries,
@@ -83,11 +82,7 @@ fun EntriesScreen(
                     )
                     ExcelExporter.openReport(context, file)
                 } catch (e: Exception) {
-                    Toast.makeText(
-                        context,
-                        "Ошибка: ${e.message}",
-                        Toast.LENGTH_LONG
-                    ).show()
+                    Toast.makeText(context, "Ошибка: ${e.message}", Toast.LENGTH_LONG).show()
                 }
             },
             onShare = {
@@ -100,11 +95,7 @@ fun EntriesScreen(
                     )
                     ExcelExporter.shareReport(context, file)
                 } catch (e: Exception) {
-                    Toast.makeText(
-                        context,
-                        "Ошибка: ${e.message}",
-                        Toast.LENGTH_LONG
-                    ).show()
+                    Toast.makeText(context, "Ошибка: ${e.message}", Toast.LENGTH_LONG).show()
                 }
             }
         )
@@ -248,7 +239,7 @@ private fun SummaryCard(
                 )
                 SummaryItem(
                     label = appState.t("total_products"),
-                    value = "${summary.productsCount.values.sum()} ${appState.t("pieces_short")}"
+                    value = "${summary.productsReady.values.sum()} ${appState.t("pieces_short")}"
                 )
                 SummaryItem(
                     label = appState.t("total_money"),
@@ -256,12 +247,23 @@ private fun SummaryCard(
                 )
             }
 
-            if (summary.productsCount.isNotEmpty()) {
+            if (summary.productsReady.isNotEmpty()) {
                 Spacer(Modifier.height(8.dp))
-                summary.productsCount.forEach { (name, qty) ->
+                summary.productsReady.forEach { (name, qty) ->
                     Text(
                         text = "• $name: $qty ${appState.t("pieces_short")}",
                         style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+
+            if (summary.productsInProgress.isNotEmpty()) {
+                Spacer(Modifier.height(4.dp))
+                summary.productsInProgress.forEach { (name, qty) ->
+                    Text(
+                        text = "• $name: $qty ${appState.t("in_progress_short")}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -364,12 +366,31 @@ private fun EntryCard(
                     )
                 }
 
+                // Индивидуальная ставка
                 if (entry.customHourRate != null) {
                     Text(
                         text = "★ ${appState.t("hour_rate")}: ${entry.customHourRate} ${appState.currencyLabel()}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.tertiary,
                         fontWeight = FontWeight.Bold
+                    )
+                }
+
+                // Заготовки в работе — только для тебя
+                if (entry.inProgress > 0) {
+                    Text(
+                        text = "🔧 ${appState.t("in_progress_short")}: ${entry.inProgress} ${appState.t("pieces_short")}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                // Прогресс
+                if (entry.progressPercent != null) {
+                    Text(
+                        text = "${appState.t("progress_percent")}: ${entry.progressPercent}${appState.t("percent_short")}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.tertiary
                     )
                 }
 
@@ -403,20 +424,33 @@ private fun EntryCard(
 private fun calculateSummary(entries: List<Entry>, hourRate: Int): MonthSummary {
     var totalMinutes = 0
     var totalMoney = 0
-    val productsCount = mutableMapOf<String, Int>()
+    val ready = mutableMapOf<String, Int>()
+    // Для «в работе» берём последнее значение по каждому изделию (по дате)
+    val inProgressPerProduct = mutableMapOf<String, Pair<java.time.LocalDate, Int>>()
 
     entries.forEach { entry ->
         if (entry.type == EntryType.HOURS || entry.type == EntryType.MIXED) {
             totalMinutes += entry.durationMinutes()
         }
         if (entry.type == EntryType.PRODUCTS || entry.type == EntryType.MIXED) {
-            productsCount[entry.productName] =
-                (productsCount[entry.productName] ?: 0) + entry.quantity
+            if (entry.productName.isNotBlank()) {
+                ready[entry.productName] = (ready[entry.productName] ?: 0) + entry.quantity
+
+                // Запоминаем последнее значение inProgress для изделия
+                val existing = inProgressPerProduct[entry.productName]
+                if (existing == null || entry.date.isAfter(existing.first)) {
+                    inProgressPerProduct[entry.productName] = entry.date to entry.inProgress
+                }
+            }
         }
         totalMoney += entry.total(hourRate)
     }
 
-    return MonthSummary(totalMinutes, totalMoney, productsCount)
+    val inProgress = inProgressPerProduct
+        .filterValues { it.second > 0 }
+        .mapValues { it.value.second }
+
+    return MonthSummary(totalMinutes, totalMoney, ready, inProgress)
 }
 
 private fun localeFor(lang: String): Locale =
