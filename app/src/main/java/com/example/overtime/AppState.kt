@@ -50,6 +50,11 @@ class AppState(context: Context) {
         persist()
     }
 
+    fun setShowProgressPercent(show: Boolean) {
+        settings = settings.copy(showProgressPercent = show)
+        persist()
+    }
+
     fun addEntry(entry: Entry) {
         entries = (entries + entry).sortedByDescending { it.date }
         persist()
