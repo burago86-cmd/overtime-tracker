@@ -52,7 +52,6 @@ fun PreviewDialog(
         },
         text = {
             Column {
-                // --- Переключатель «Показать деньги» ---
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -75,7 +74,6 @@ fun PreviewDialog(
                         .heightIn(max = 380.dp)
                         .verticalScroll(rememberScrollState())
                 ) {
-                    // Заголовки
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -90,7 +88,7 @@ fun PreviewDialog(
                         HeaderCell(appState.t("lunch_minutes"), 65.dp)
                         HeaderCell(appState.t("total_time"), 80.dp)
                         HeaderCell(appState.t("product"), 90.dp)
-                        HeaderCell(appState.t("quantity"), 50.dp)
+                        HeaderCell(appState.t("ready_qty"), 60.dp)
                         if (showMoney) {
                             HeaderCell(appState.t("hour_rate"), 55.dp)
                             HeaderCell(appState.t("product_price"), 50.dp)
@@ -134,7 +132,7 @@ fun PreviewDialog(
                             )
                             BodyCell(if (durH > 0) "%.2f".format(durH) else "—", 80.dp)
                             BodyCell(e.productName.ifBlank { "—" }, 90.dp)
-                            BodyCell(if (e.quantity > 0) e.quantity.toString() else "—", 50.dp)
+                            BodyCell(if (e.quantity > 0) e.quantity.toString() else "—", 60.dp)
                             if (showMoney) {
                                 BodyCell(e.effectiveHourRate(hourRate).toString(), 55.dp)
                                 BodyCell(if (e.productPrice > 0) e.productPrice.toString() else "—", 50.dp)
