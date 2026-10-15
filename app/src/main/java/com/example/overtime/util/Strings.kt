@@ -50,6 +50,7 @@ object Strings {
         "english" to "English",
         "hours_short" to "ч",
         "minutes_short" to "мин",
+        "seconds_short" to "с",
         "pieces_short" to "шт",
         "percent_short" to "%",
         "currency" to "Валюта",
@@ -76,7 +77,24 @@ object Strings {
         "calculator" to "Калькулятор времени",
         "create_entry" to "Создать запись",
         "apply" to "Применить",
-        "calculate" to "Посчитать"
+        "calculate" to "Посчитать",
+        "pin_protection" to "Защита PIN-кодом",
+        "set_pin" to "Задать PIN",
+        "change_pin" to "Изменить PIN",
+        "pin" to "PIN",
+        "pin_confirm" to "Повторите PIN",
+        "pin_hint" to "4–8 цифр",
+        "pin_too_short" to "Минимум 4 цифры",
+        "pin_mismatch" to "PIN-коды не совпадают",
+        "enter_pin" to "Введите PIN",
+        "wrong_pin" to "Неверный PIN",
+        "locked_for" to "Заблокировано на",
+        "forgot_pin" to "Забыл PIN",
+        "forgot_pin_warning" to "Все данные будут удалены без возможности восстановления. Продолжить?",
+        "reset_data" to "Сбросить данные",
+        "lock_after" to "Спрашивать через",
+        "reminder" to "Напоминание",
+        "reminder_hint" to "Уведомление, если за сегодня нет ни одной записи"
     )
 
     private val en = mapOf(
@@ -127,6 +145,7 @@ object Strings {
         "english" to "English",
         "hours_short" to "h",
         "minutes_short" to "min",
+        "seconds_short" to "s",
         "pieces_short" to "pcs",
         "percent_short" to "%",
         "currency" to "Currency",
@@ -153,7 +172,24 @@ object Strings {
         "calculator" to "Time calculator",
         "create_entry" to "Create entry",
         "apply" to "Apply",
-        "calculate" to "Calculate"
+        "calculate" to "Calculate",
+        "pin_protection" to "PIN protection",
+        "set_pin" to "Set PIN",
+        "change_pin" to "Change PIN",
+        "pin" to "PIN",
+        "pin_confirm" to "Confirm PIN",
+        "pin_hint" to "4–8 digits",
+        "pin_too_short" to "Minimum 4 digits",
+        "pin_mismatch" to "PINs don't match",
+        "enter_pin" to "Enter PIN",
+        "wrong_pin" to "Wrong PIN",
+        "locked_for" to "Locked for",
+        "forgot_pin" to "Forgot PIN",
+        "forgot_pin_warning" to "All data will be deleted without recovery. Continue?",
+        "reset_data" to "Reset data",
+        "lock_after" to "Ask after",
+        "reminder" to "Reminder",
+        "reminder_hint" to "Notification if there is no entry for today"
     )
 
     fun t(key: String, lang: String): String {
