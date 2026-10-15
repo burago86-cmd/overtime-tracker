@@ -27,19 +27,22 @@ data class Entry(
     val isDayOff: Boolean = false,
     val lunchMinutes: Int = 0,
 
-    // Индивидуальная ставка за час. null = использовать ставку из настроек.
     val customHourRate: Int? = null,
 
+    // --- Изделия ---
+    // productId / productName / productPrice — что за изделие
+    // quantity — сколько ГОТОВЫХ изделий (за это платят)
+    // inProgress — сколько заготовок в работе (остаток на конец дня)
+    // progressPercent — прогресс, чисто для заметки (0..100, null = не задан)
     val productId: String? = null,
     val productName: String = "",
     val productPrice: Int = 0,
     val quantity: Int = 0,
+    val inProgress: Int = 0,
+    val progressPercent: Int? = null,
 
     val comment: String = ""
 ) {
-    /**
-     * Ставка, которая реально применяется к этой записи.
-     */
     fun effectiveHourRate(defaultRate: Int): Int =
         customHourRate ?: defaultRate
 
@@ -95,14 +98,18 @@ data class AppSettings(
     val currency: String = "BYN",
     val darkTheme: Boolean = true,
     val products: List<Product> = emptyList(),
-    // Показывать ли деньги (ставка, цена, сумма) в предпросмотре и Excel
-    val showMoneyInExport: Boolean = true
+    val showMoneyInExport: Boolean = true,
+    // Фича «проценты» — отключена по умолчанию
+    val showProgressPercent: Boolean = false
 )
 
 data class MonthSummary(
     val totalMinutes: Int = 0,
     val totalMoney: Int = 0,
-    val productsCount: Map<String, Int> = emptyMap()
+    // Готовые изделия: имя -> количество
+    val productsReady: Map<String, Int> = emptyMap(),
+    // Заготовки в работе (последнее значение по каждому изделию за месяц)
+    val productsInProgress: Map<String, Int> = emptyMap()
 ) {
     fun hoursText(): String {
         val h = totalMinutes / 60
