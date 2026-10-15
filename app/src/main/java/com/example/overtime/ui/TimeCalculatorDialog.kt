@@ -1,6 +1,5 @@
 package com.example.overtime.ui
 
-import android.app.TimePickerDialog
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -25,24 +24,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.overtime.AppState
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
-/**
- * Диалог-калькулятор времени.
- * Считает разницу между временами, вычитает обед (если выходной),
- * умножает на ставку и может передать данные в форму добавления.
- *
- * @param initialStart начальное время начала (для переноса из формы)
- * @param initialEnd начальное время конца
- * @param initialIsDayOff галочка «выходной»
- * @param initialLunch обед в минутах
- * @param onCreateEntry вызывается по кнопке «Создать запись»
- */
 @Composable
 fun TimeCalculatorDialog(
     appState: AppState,
@@ -53,18 +40,18 @@ fun TimeCalculatorDialog(
     onDismiss: () -> Unit,
     onCreateEntry: (start: LocalTime, end: LocalTime, isDayOff: Boolean, lunch: Int) -> Unit
 ) {
-    val context = LocalContext.current
-
     var startTime by remember { mutableStateOf(initialStart) }
     var endTime by remember { mutableStateOf(initialEnd) }
     var isDayOff by remember { mutableStateOf(initialIsDayOff) }
     var lunchText by remember { mutableStateOf(initialLunch.takeIf { it > 0 }?.toString() ?: "") }
     var rateText by remember { mutableStateOf(appState.settings.hourRate.toString()) }
 
+    var showStartPicker by remember { mutableStateOf(false) }
+    var showEndPicker by remember { mutableStateOf(false) }
+
     val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
     val currency = appState.currencyLabel()
 
-    // Расчёты
     val rawMinutes = run {
         val s = startTime.hour * 60 + startTime.minute
         val e = endTime.hour * 60 + endTime.minute
@@ -86,6 +73,23 @@ fun TimeCalculatorDialog(
         }
     }
 
+    if (showStartPicker) {
+        WheelTimeDialog(
+            initialTime = startTime,
+            title = appState.t("start_time"),
+            onDismiss = { showStartPicker = false },
+            onConfirm = { startTime = it; showStartPicker = false }
+        )
+    }
+    if (showEndPicker) {
+        WheelTimeDialog(
+            initialTime = endTime,
+            title = appState.t("end_time"),
+            onDismiss = { showEndPicker = false },
+            onConfirm = { endTime = it; showEndPicker = false }
+        )
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
@@ -97,7 +101,6 @@ fun TimeCalculatorDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
 
-                // Время начала
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
@@ -108,20 +111,13 @@ fun TimeCalculatorDialog(
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Button(
-                        onClick = {
-                            TimePickerDialog(
-                                context,
-                                { _, h, m -> startTime = LocalTime.of(h, m) },
-                                startTime.hour, startTime.minute, true
-                            ).show()
-                        },
+                        onClick = { showStartPicker = true },
                         modifier = Modifier.weight(1f)
                     ) {
                         Text(startTime.format(timeFormatter))
                     }
                 }
 
-                // Время конца
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
@@ -132,20 +128,13 @@ fun TimeCalculatorDialog(
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Button(
-                        onClick = {
-                            TimePickerDialog(
-                                context,
-                                { _, h, m -> endTime = LocalTime.of(h, m) },
-                                endTime.hour, endTime.minute, true
-                            ).show()
-                        },
+                        onClick = { showEndPicker = true },
                         modifier = Modifier.weight(1f)
                     ) {
                         Text(endTime.format(timeFormatter))
                     }
                 }
 
-                // Галочка «Выходной»
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
@@ -160,7 +149,6 @@ fun TimeCalculatorDialog(
                     )
                 }
 
-                // Обед (только для выходных)
                 if (isDayOff) {
                     OutlinedTextField(
                         value = lunchText,
@@ -173,7 +161,6 @@ fun TimeCalculatorDialog(
                     )
                 }
 
-                // Ставка
                 OutlinedTextField(
                     value = rateText,
                     onValueChange = { new ->
@@ -186,7 +173,6 @@ fun TimeCalculatorDialog(
 
                 Spacer(Modifier.height(4.dp))
 
-                // Итоги
                 Card(
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer
