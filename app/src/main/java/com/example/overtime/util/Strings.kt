@@ -18,6 +18,11 @@ object Strings {
         "duration" to "Длительность",
         "product" to "Изделие",
         "quantity" to "Количество",
+        "ready_qty" to "Готово (шт)",
+        "in_progress_qty" to "В работе (шт)",
+        "progress_percent" to "Прогресс (%)",
+        "progress_hint" to "Для заметки, на деньги не влияет",
+        "in_progress_hint" to "Остаток заготовок на конец дня (для себя)",
         "comment" to "Комментарий",
         "save" to "Сохранить",
         "cancel" to "Отмена",
@@ -27,7 +32,8 @@ object Strings {
         "no_entries" to "Записей пока нет",
         "month_total" to "Итого за месяц",
         "total_hours" to "Часов",
-        "total_products" to "Изделий",
+        "total_products" to "Готовых",
+        "total_in_progress" to "В работе",
         "total_money" to "Сумма",
         "hour_rate" to "Ставка за час",
         "products_catalog" to "Справочник изделий",
@@ -36,6 +42,8 @@ object Strings {
         "product_price" to "Цена",
         "language" to "Язык",
         "dark_theme" to "Тёмная тема",
+        "show_progress_percent" to "Показывать проценты",
+        "show_progress_percent_hint" to "Дополнительное поле для заметок в форме",
         "export_excel" to "Экспорт в Excel",
         "export_empty" to "Нет данных для экспорта",
         "russian" to "Русский",
@@ -43,6 +51,7 @@ object Strings {
         "hours_short" to "ч",
         "minutes_short" to "мин",
         "pieces_short" to "шт",
+        "percent_short" to "%",
         "currency" to "Валюта",
         "back" to "Назад",
         "close" to "Закрыть",
@@ -62,7 +71,8 @@ object Strings {
         "show_money" to "Показать деньги",
         "make_default_rate" to "Сделать основной",
         "use_default_rate" to "По умолчанию",
-        "custom_rate_hint" to "Оставьте пустым для ставки из настроек"
+        "custom_rate_hint" to "Оставьте пустым для ставки из настроек",
+        "in_progress_short" to "в работе"
     )
 
     private val en = mapOf(
@@ -81,6 +91,11 @@ object Strings {
         "duration" to "Duration",
         "product" to "Product",
         "quantity" to "Quantity",
+        "ready_qty" to "Ready (pcs)",
+        "in_progress_qty" to "In progress (pcs)",
+        "progress_percent" to "Progress (%)",
+        "progress_hint" to "For notes only, doesn't affect money",
+        "in_progress_hint" to "Remaining blanks at end of day (for your eyes only)",
         "comment" to "Comment",
         "save" to "Save",
         "cancel" to "Cancel",
@@ -90,7 +105,8 @@ object Strings {
         "no_entries" to "No entries yet",
         "month_total" to "Month total",
         "total_hours" to "Hours",
-        "total_products" to "Products",
+        "total_products" to "Ready",
+        "total_in_progress" to "In progress",
         "total_money" to "Total",
         "hour_rate" to "Hour rate",
         "products_catalog" to "Products catalog",
@@ -99,6 +115,8 @@ object Strings {
         "product_price" to "Price",
         "language" to "Language",
         "dark_theme" to "Dark theme",
+        "show_progress_percent" to "Show progress percent",
+        "show_progress_percent_hint" to "Extra note field in the form",
         "export_excel" to "Export to Excel",
         "export_empty" to "No data to export",
         "russian" to "Русский",
@@ -106,6 +124,7 @@ object Strings {
         "hours_short" to "h",
         "minutes_short" to "min",
         "pieces_short" to "pcs",
+        "percent_short" to "%",
         "currency" to "Currency",
         "back" to "Back",
         "close" to "Close",
@@ -125,7 +144,8 @@ object Strings {
         "show_money" to "Show money",
         "make_default_rate" to "Make default",
         "use_default_rate" to "Default",
-        "custom_rate_hint" to "Leave empty to use rate from settings"
+        "custom_rate_hint" to "Leave empty to use rate from settings",
+        "in_progress_short" to "in progress"
     )
 
     fun t(key: String, lang: String): String {
