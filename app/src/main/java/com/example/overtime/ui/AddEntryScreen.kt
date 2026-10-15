@@ -15,6 +15,7 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -93,6 +94,8 @@ fun AddEntryScreen(
     }
     var productDropdownExpanded by remember { mutableStateOf(false) }
 
+    var showCalculator by remember { mutableStateOf(false) }
+
     val products = appState.settings.products
     val currency = appState.currencyLabel()
     val defaultRate = appState.settings.hourRate
@@ -100,6 +103,31 @@ fun AddEntryScreen(
 
     val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
     val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
+
+    // Диалог калькулятора
+    if (showCalculator) {
+        TimeCalculatorDialog(
+            appState = appState,
+            initialStart = startTime,
+            initialEnd = endTime,
+            initialIsDayOff = isDayOff,
+            initialLunch = lunchText.toIntOrNull() ?: 0,
+            onDismiss = { showCalculator = false },
+            onCreateEntry = { start, end, dayOff, lunch ->
+                // Переносим данные в форму
+                startTime = start
+                endTime = end
+                isDayOff = dayOff
+                dayOffManuallyChanged = true
+                lunchText = if (lunch > 0) lunch.toString() else ""
+                // Меняем тип на HOURS, если сейчас не было времени
+                if (type == EntryType.PRODUCTS) {
+                    type = EntryType.HOURS
+                }
+                showCalculator = false
+            }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -170,7 +198,7 @@ fun AddEntryScreen(
                 Text(appState.t("select_date"))
             }
 
-            // ---------- Галочка «Выходной» ----------
+            // Галочка «Выходной»
             Card(
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surfaceVariant
@@ -202,7 +230,7 @@ fun AddEntryScreen(
                 }
             }
 
-            // ---------- Тип ----------
+            // Тип
             Text(
                 text = appState.t("type"),
                 style = MaterialTheme.typography.titleSmall,
@@ -226,7 +254,7 @@ fun AddEntryScreen(
                 )
             }
 
-            // ---------- Время ----------
+            // Время
             if (type == EntryType.HOURS || type == EntryType.MIXED) {
                 Card(
                     colors = CardDefaults.cardColors(
@@ -234,11 +262,23 @@ fun AddEntryScreen(
                     )
                 ) {
                     Column(modifier = Modifier.padding(12.dp)) {
-                        Text(
-                            text = appState.t("duration"),
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = appState.t("duration"),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                            IconButton(onClick = { showCalculator = true }) {
+                                Icon(
+                                    Icons.Filled.Calculate,
+                                    contentDescription = appState.t("calculator")
+                                )
+                            }
+                        }
                         Spacer(Modifier.height(8.dp))
 
                         Row(
@@ -284,7 +324,7 @@ fun AddEntryScreen(
                             )
                         }
 
-                        // ---------- Индивидуальная ставка ----------
+                        // Индивидуальная ставка
                         Spacer(Modifier.height(12.dp))
                         Text(
                             text = "${appState.t("hour_rate")} (${appState.currencyLabel()})",
@@ -324,7 +364,7 @@ fun AddEntryScreen(
                 }
             }
 
-            // ---------- Изделие ----------
+            // Изделие
             if (type == EntryType.PRODUCTS || type == EntryType.MIXED) {
                 Card(
                     colors = CardDefaults.cardColors(
@@ -379,7 +419,6 @@ fun AddEntryScreen(
 
                             Spacer(Modifier.height(8.dp))
 
-                            // Готово (шт) — за это платят
                             OutlinedTextField(
                                 value = readyText,
                                 onValueChange = { new ->
@@ -392,7 +431,6 @@ fun AddEntryScreen(
 
                             Spacer(Modifier.height(8.dp))
 
-                            // В работе (шт) — только для тебя
                             OutlinedTextField(
                                 value = inProgressText,
                                 onValueChange = { new ->
@@ -408,7 +446,6 @@ fun AddEntryScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
 
-                            // Проценты — если включено в настройках
                             if (showPercentField) {
                                 Spacer(Modifier.height(8.dp))
                                 OutlinedTextField(
