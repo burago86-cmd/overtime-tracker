@@ -11,15 +11,33 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.example.overtime.ui.MainScreen
+import com.example.overtime.ui.PinScreen
 
 class MainActivity : ComponentActivity() {
+
+    private lateinit var appState: AppState
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val appState = AppState(applicationContext)
+        appState = AppState(applicationContext)
 
         setContent {
             OvertimeApp(appState)
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (::appState.isInitialized) {
+            appState.onAppResumed()
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        if (::appState.isInitialized) {
+            appState.onAppPaused()
         }
     }
 }
@@ -30,7 +48,11 @@ fun OvertimeApp(appState: AppState) {
 
     MaterialTheme(colorScheme = colorScheme) {
         Surface(modifier = Modifier.fillMaxSize()) {
-            MainScreen(appState)
+            if (appState.settings.pinEnabled && !appState.isUnlocked) {
+                PinScreen(appState)
+            } else {
+                MainScreen(appState)
+            }
         }
     }
 }
