@@ -29,11 +29,6 @@ data class Entry(
 
     val customHourRate: Int? = null,
 
-    // --- Изделия ---
-    // productId / productName / productPrice — что за изделие
-    // quantity — сколько ГОТОВЫХ изделий (за это платят)
-    // inProgress — сколько заготовок в работе (остаток на конец дня)
-    // progressPercent — прогресс, чисто для заметки (0..100, null = не задан)
     val productId: String? = null,
     val productName: String = "",
     val productPrice: Int = 0,
@@ -99,16 +94,23 @@ data class AppSettings(
     val darkTheme: Boolean = true,
     val products: List<Product> = emptyList(),
     val showMoneyInExport: Boolean = true,
-    // Фича «проценты» — отключена по умолчанию
-    val showProgressPercent: Boolean = false
+    val showProgressPercent: Boolean = false,
+
+    // --- PIN ---
+    val pinEnabled: Boolean = false,
+    val pin: String = "",
+    val lockAfterMinutes: Int = 5,   // через сколько минут после сворачивания спрашивать PIN
+
+    // --- Напоминание ---
+    val reminderEnabled: Boolean = false,
+    val reminderHour: Int = 21,      // 21:00
+    val reminderMinute: Int = 0
 )
 
 data class MonthSummary(
     val totalMinutes: Int = 0,
     val totalMoney: Int = 0,
-    // Готовые изделия: имя -> количество
     val productsReady: Map<String, Int> = emptyMap(),
-    // Заготовки в работе (последнее значение по каждому изделию за месяц)
     val productsInProgress: Map<String, Int> = emptyMap()
 ) {
     fun hoursText(): String {
