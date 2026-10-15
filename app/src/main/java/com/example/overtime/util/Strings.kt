@@ -72,8 +72,8 @@ object Strings {
         "make_default_rate" to "Сделать основной",
         "use_default_rate" to "По умолчанию",
         "custom_rate_hint" to "Оставьте пустым для ставки из настроек",
-        "in_progress_short" to "в работе"
-          "calculator" to "Калькулятор времени",
+        "in_progress_short" to "в работе",
+        "calculator" to "Калькулятор времени",
         "create_entry" to "Создать запись",
         "apply" to "Применить",
         "calculate" to "Посчитать"
@@ -149,8 +149,8 @@ object Strings {
         "make_default_rate" to "Make default",
         "use_default_rate" to "Default",
         "custom_rate_hint" to "Leave empty to use rate from settings",
-        "in_progress_short" to "in progress"
-                "calculator" to "Time calculator",
+        "in_progress_short" to "in progress",
+        "calculator" to "Time calculator",
         "create_entry" to "Create entry",
         "apply" to "Apply",
         "calculate" to "Calculate"
