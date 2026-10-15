@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Card
@@ -59,6 +60,7 @@ fun EntriesScreen(
 
     var selectedMonth by remember { mutableStateOf(YearMonth.now()) }
     var showPreview by remember { mutableStateOf(false) }
+    var showCalculator by remember { mutableStateOf(false) }
 
     val monthEntries = entries.filter {
         YearMonth.from(it.date) == selectedMonth
@@ -101,11 +103,35 @@ fun EntriesScreen(
         )
     }
 
+    if (showCalculator) {
+        TimeCalculatorDialog(
+            appState = appState,
+            onDismiss = { showCalculator = false },
+            onCreateEntry = { start, end, dayOff, lunch ->
+                // Просто закрываем — пользователь сам добавит через форму
+                showCalculator = false
+                Toast.makeText(
+                    context,
+                    "$start–$end (${if (dayOff) "выходной" else "будний"}, обед $lunch мин)",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text(appState.t("app_name")) },
                 actions = {
+                    // Калькулятор
+                    IconButton(onClick = { showCalculator = true }) {
+                        Icon(
+                            Icons.Filled.Calculate,
+                            contentDescription = appState.t("calculator")
+                        )
+                    }
+                    // Экспорт
                     IconButton(onClick = {
                         if (monthEntries.isEmpty()) {
                             Toast.makeText(
@@ -366,7 +392,6 @@ private fun EntryCard(
                     )
                 }
 
-                // Индивидуальная ставка
                 if (entry.customHourRate != null) {
                     Text(
                         text = "★ ${appState.t("hour_rate")}: ${entry.customHourRate} ${appState.currencyLabel()}",
@@ -376,7 +401,6 @@ private fun EntryCard(
                     )
                 }
 
-                // Заготовки в работе — только для тебя
                 if (entry.inProgress > 0) {
                     Text(
                         text = "🔧 ${appState.t("in_progress_short")}: ${entry.inProgress} ${appState.t("pieces_short")}",
@@ -385,7 +409,6 @@ private fun EntryCard(
                     )
                 }
 
-                // Прогресс
                 if (entry.progressPercent != null) {
                     Text(
                         text = "${appState.t("progress_percent")}: ${entry.progressPercent}${appState.t("percent_short")}",
@@ -425,7 +448,6 @@ private fun calculateSummary(entries: List<Entry>, hourRate: Int): MonthSummary 
     var totalMinutes = 0
     var totalMoney = 0
     val ready = mutableMapOf<String, Int>()
-    // Для «в работе» берём последнее значение по каждому изделию (по дате)
     val inProgressPerProduct = mutableMapOf<String, Pair<java.time.LocalDate, Int>>()
 
     entries.forEach { entry ->
@@ -435,8 +457,6 @@ private fun calculateSummary(entries: List<Entry>, hourRate: Int): MonthSummary 
         if (entry.type == EntryType.PRODUCTS || entry.type == EntryType.MIXED) {
             if (entry.productName.isNotBlank()) {
                 ready[entry.productName] = (ready[entry.productName] ?: 0) + entry.quantity
-
-                // Запоминаем последнее значение inProgress для изделия
                 val existing = inProgressPerProduct[entry.productName]
                 if (existing == null || entry.date.isAfter(existing.first)) {
                     inProgressPerProduct[entry.productName] = entry.date to entry.inProgress
