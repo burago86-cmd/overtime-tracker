@@ -94,7 +94,6 @@ object ExcelExporter {
                 sheet.value(row, col++, e.total(settings.hourRate))
             }
 
-            // Накапливаем
             if (e.type == EntryType.HOURS || e.type == EntryType.MIXED) {
                 totalMinutes += e.durationMinutes()
                 if (showMoney) {
@@ -104,7 +103,6 @@ object ExcelExporter {
             if (e.type == EntryType.PRODUCTS || e.type == EntryType.MIXED) {
                 totalReady += e.quantity
                 if (e.productName.isNotBlank()) {
-                    // Если в записи groupId нет — берём из справочника изделий
                     val resolvedGroupId = e.productGroupId
                         ?: settings.products.find { it.id == e.productId }?.groupId
                     val map = groupProducts.getOrPut(resolvedGroupId) { mutableMapOf() }
@@ -147,7 +145,6 @@ object ExcelExporter {
         }
         summaryRow++
 
-        // Сортируем группы: сначала реальные по имени, потом «Без группы» в конце
         val namedGroups = groupProducts.keys
             .filter { it != null }
             .sortedBy { id -> settings.groups.find { it.id == id }?.name ?: "" }
@@ -171,6 +168,7 @@ object ExcelExporter {
 
                 var groupQty = 0
                 var groupMoney = 0
+                var kits: Int? = null
 
                 productsMap.keys.sorted().forEach { name ->
                     val (qty, money) = productsMap[name] ?: (0 to 0)
@@ -181,6 +179,7 @@ object ExcelExporter {
                     }
                     groupQty += qty
                     groupMoney += money
+                    kits = if (kits == null) qty else minOf(kits!!, qty)
                     summaryRow++
                 }
 
@@ -192,6 +191,12 @@ object ExcelExporter {
                     sheet.value(summaryRow, 2, groupMoney)
                     sheet.style(summaryRow, 2).bold().set()
                 }
+                summaryRow++
+
+                // Комплекты
+                val kitsCount = kits ?: 0
+                sheet.value(summaryRow, 0, "   ${t("kits")}: $kitsCount")
+                sheet.style(summaryRow, 0).bold().set()
                 summaryRow++
             }
         }
