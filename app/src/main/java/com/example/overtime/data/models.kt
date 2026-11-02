@@ -10,9 +10,6 @@ enum class EntryType {
     MIXED
 }
 
-/**
- * Группа изделий (например, «Пайка», «Сборка», «Покраска»).
- */
 data class ProductGroup(
     val id: String,
     val name: String
@@ -22,7 +19,7 @@ data class Product(
     val id: String,
     val name: String,
     val price: Int,
-    val groupId: String? = null     // null = «Без группы»
+    val groupId: String? = null
 )
 
 data class Entry(
@@ -45,7 +42,6 @@ data class Entry(
     val inProgress: Int = 0,
     val progressPercent: Int? = null,
 
-    // Дублируем groupId — на случай, если изделие удалят или переименуют группу
     val productGroupId: String? = null,
 
     val comment: String = ""
