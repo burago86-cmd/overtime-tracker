@@ -404,8 +404,10 @@ fun AddEntryScreen(
                                     onDismissRequest = { productDropdownExpanded = false }
                                 ) {
                                     products.forEach { p ->
+                                        val groupSuffix = if (p.groupId != null)
+                                            " (${appState.groupName(p.groupId)})" else ""
                                         DropdownMenuItem(
-                                            text = { Text("${p.name} — ${p.price} $currency") },
+                                            text = { Text("${p.name} — ${p.price} $currency$groupSuffix") },
                                             onClick = {
                                                 productId = p.id
                                                 productDropdownExpanded = false
@@ -561,6 +563,7 @@ private fun saveEntry(
         quantity = if (isProductType) quantity else 0,
         inProgress = if (isProductType) inProgress else 0,
         progressPercent = if (isProductType) progressPercent else null,
+        productGroupId = if (isProductType) product?.groupId else null,
         comment = comment
     )
 
