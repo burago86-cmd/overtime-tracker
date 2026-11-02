@@ -42,12 +42,11 @@ fun PreviewDialog(
     val currency = appState.currencyLabel()
     val showMoney = appState.settings.showMoneyInExport
 
-    // Итого
     var totalHours = 0.0
     var totalMoney = 0
     var hoursMoney = 0
 
-    // Сводка: groupId -> (productName -> (qty, money))
+    // groupId -> (productName -> (qty, money))
     val groupProducts = mutableMapOf<String?, MutableMap<String, Pair<Int, Int>>>()
 
     monthEntries.forEach { e ->
@@ -57,7 +56,9 @@ fun PreviewDialog(
         }
         if (e.type == EntryType.PRODUCTS || e.type == EntryType.MIXED) {
             if (e.productName.isNotBlank()) {
-                val map = groupProducts.getOrPut(e.productGroupId) { mutableMapOf() }
+                val resolvedGroupId = e.productGroupId
+                    ?: appState.settings.products.find { it.id == e.productId }?.groupId
+                val map = groupProducts.getOrPut(resolvedGroupId) { mutableMapOf() }
                 val existing = map[e.productName] ?: (0 to 0)
                 map[e.productName] = (existing.first + e.quantity) to
                         (existing.second + (e.quantity * e.productPrice))
@@ -66,7 +67,6 @@ fun PreviewDialog(
         totalMoney += e.total(hourRate)
     }
 
-    // Порядок групп
     val namedGroups = groupProducts.keys
         .filter { it != null }
         .sortedBy { id -> appState.groupName(id) }
@@ -84,7 +84,6 @@ fun PreviewDialog(
         },
         text = {
             Column {
-                // Switch «Показать деньги»
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -107,7 +106,7 @@ fun PreviewDialog(
                         .heightIn(max = 420.dp)
                         .verticalScroll(rememberScrollState())
                 ) {
-                    // --- Таблица записей ---
+                    // Таблица записей
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -172,7 +171,6 @@ fun PreviewDialog(
 
                     Spacer(Modifier.height(8.dp))
 
-                    // --- ИТОГО ---
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
@@ -191,7 +189,6 @@ fun PreviewDialog(
 
                     Spacer(Modifier.height(12.dp))
 
-                    // --- СВОДКА ПО ГРУППАМ ---
                     Text(
                         text = appState.t("summary_by_products").uppercase(),
                         style = MaterialTheme.typography.titleSmall,
@@ -208,7 +205,6 @@ fun PreviewDialog(
                             else appState.groupName(groupId).ifBlank { appState.t("no_group") }
                             val productsMap = groupProducts[groupId] ?: emptyMap()
 
-                            // Заголовок группы
                             Text(
                                 text = "▶ $groupName",
                                 style = MaterialTheme.typography.bodyMedium,
@@ -217,7 +213,6 @@ fun PreviewDialog(
                                 modifier = Modifier.padding(top = 8.dp, bottom = 2.dp)
                             )
 
-                            // Шапка мини-таблицы
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -233,6 +228,7 @@ fun PreviewDialog(
 
                             var groupQty = 0
                             var groupMoney = 0
+                            var kits: Int? = null
 
                             productsMap.keys.sorted().forEach { name ->
                                 val (qty, money) = productsMap[name] ?: (0 to 0)
@@ -249,9 +245,9 @@ fun PreviewDialog(
                                 }
                                 groupQty += qty
                                 groupMoney += money
+                                kits = if (kits == null) qty else minOf(kits!!, qty)
                             }
 
-                            // Промежуточный итог
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -278,10 +274,24 @@ fun PreviewDialog(
                                     )
                                 }
                             }
+
+                            // Комплекты
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 2.dp, horizontal = 4.dp)
+                            ) {
+                                Text(
+                                    text = "${appState.t("kits")}: ${kits ?: 0}",
+                                    modifier = Modifier.fillMaxWidth(),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.tertiary
+                                )
+                            }
                         }
                     }
 
-                    // Часы и деньги за часы
                     if (showMoney) {
                         Spacer(Modifier.height(8.dp))
 
