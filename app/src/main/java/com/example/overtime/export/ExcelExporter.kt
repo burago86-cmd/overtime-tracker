@@ -64,7 +64,6 @@ object ExcelExporter {
         var totalReady = 0
         var totalMoney = 0
 
-        // Для сводки по изделиям (внутри групп)
         // groupId -> (productName -> (qty, money))
         val groupProducts = mutableMapOf<String?, MutableMap<String, Pair<Int, Int>>>()
         var hoursMoney = 0
@@ -105,12 +104,13 @@ object ExcelExporter {
             if (e.type == EntryType.PRODUCTS || e.type == EntryType.MIXED) {
                 totalReady += e.quantity
                 if (e.productName.isNotBlank()) {
-                    val key = e.productGroupId
-                    val map = groupProducts.getOrPut(key) { mutableMapOf() }
+                    // Если в записи groupId нет — берём из справочника изделий
+                    val resolvedGroupId = e.productGroupId
+                        ?: settings.products.find { it.id == e.productId }?.groupId
+                    val map = groupProducts.getOrPut(resolvedGroupId) { mutableMapOf() }
                     val existing = map[e.productName] ?: (0 to 0)
-                    val addedQty = existing.first + e.quantity
-                    val addedMoney = existing.second + (e.quantity * e.productPrice)
-                    map[e.productName] = addedQty to addedMoney
+                    map[e.productName] = (existing.first + e.quantity) to
+                            (existing.second + (e.quantity * e.productPrice))
                 }
             }
             totalMoney += e.total(settings.hourRate)
@@ -130,14 +130,13 @@ object ExcelExporter {
             sheet.style(row + 1, idxTotalMoney).bold().set()
         }
 
-        // --- СВОДКА ПО ГРУППАМ И ИЗДЕЛИЯМ ---
+        // --- СВОДКА ПО ГРУППАМ ---
         var summaryRow = row + 3
 
         sheet.value(summaryRow, 0, t("summary_by_products").uppercase())
         sheet.style(summaryRow, 0).bold().set()
         summaryRow++
 
-        // Шапка
         sheet.value(summaryRow, 0, t("product"))
         sheet.style(summaryRow, 0).bold().set()
         sheet.value(summaryRow, 1, t("quantity"))
@@ -151,10 +150,9 @@ object ExcelExporter {
         // Сортируем группы: сначала реальные по имени, потом «Без группы» в конце
         val namedGroups = groupProducts.keys
             .filter { it != null }
-            .sortedBy { id ->
-                settings.groups.find { it.id == id }?.name ?: ""
-            }
-        val hasNoGroup = groupProducts.containsKey(null) && (groupProducts[null]?.isNotEmpty() == true)
+            .sortedBy { id -> settings.groups.find { it.id == id }?.name ?: "" }
+        val hasNoGroup = groupProducts.containsKey(null) &&
+                (groupProducts[null]?.isNotEmpty() == true)
 
         val orderedKeys: List<String?> = namedGroups + if (hasNoGroup) listOf(null) else emptyList()
 
@@ -164,10 +162,9 @@ object ExcelExporter {
         } else {
             orderedKeys.forEach { groupId ->
                 val groupName = if (groupId == null) t("no_group")
-                    else settings.groups.find { it.id == groupId }?.name ?: t("no_group")
+                else settings.groups.find { it.id == groupId }?.name ?: t("no_group")
                 val productsMap = groupProducts[groupId] ?: emptyMap<String, Pair<Int, Int>>()
 
-                // Заголовок группы
                 sheet.value(summaryRow, 0, "▶ $groupName")
                 sheet.style(summaryRow, 0).bold().set()
                 summaryRow++
@@ -175,7 +172,6 @@ object ExcelExporter {
                 var groupQty = 0
                 var groupMoney = 0
 
-                // Изделия внутри группы
                 productsMap.keys.sorted().forEach { name ->
                     val (qty, money) = productsMap[name] ?: (0 to 0)
                     sheet.value(summaryRow, 0, "   $name")
@@ -188,7 +184,6 @@ object ExcelExporter {
                     summaryRow++
                 }
 
-                // Промежуточный итог по группе
                 sheet.value(summaryRow, 0, "   ${t("total_for_group")}: $groupName")
                 sheet.style(summaryRow, 0).bold().set()
                 sheet.value(summaryRow, 1, groupQty)
@@ -201,7 +196,6 @@ object ExcelExporter {
             }
         }
 
-        // Часы и деньги за часы
         if (showMoney) {
             summaryRow++
             sheet.value(summaryRow, 0, t("total_hours"))
