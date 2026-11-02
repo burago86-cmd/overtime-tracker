@@ -1,5 +1,8 @@
 package com.example.overtime.ui
 
+import android.app.Activity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -60,6 +63,17 @@ fun SettingsScreen(appState: AppState) {
     var showReminderTimePicker by remember { mutableStateOf(false) }
 
     var showImportConfirm by remember { mutableStateOf(false) }
+
+    // Лаунчер для выбора файла при импорте
+    val importLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            result.data?.data?.let { uri ->
+                appState.handleImportUri(context, uri)
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -467,7 +481,7 @@ fun SettingsScreen(appState: AppState) {
             confirmButton = {
                 TextButton(onClick = {
                     showImportConfirm = false
-                    appState.importBackup(context)
+                    appState.importBackup(context, importLauncher)
                 }) {
                     Text(appState.t("yes"))
                 }
