@@ -64,9 +64,9 @@ object ExcelExporter {
         var totalReady = 0
         var totalMoney = 0
 
-        // Для сводки
-        val productsReady = mutableMapOf<String, Int>()
-        val productsMoney = mutableMapOf<String, Int>()
+        // Для сводки по изделиям (внутри групп)
+        // groupId -> (productName -> (qty, money))
+        val groupProducts = mutableMapOf<String?, MutableMap<String, Pair<Int, Int>>>()
         var hoursMoney = 0
 
         val idxTotalTime = 6
@@ -105,10 +105,12 @@ object ExcelExporter {
             if (e.type == EntryType.PRODUCTS || e.type == EntryType.MIXED) {
                 totalReady += e.quantity
                 if (e.productName.isNotBlank()) {
-                    productsReady[e.productName] =
-                        (productsReady[e.productName] ?: 0) + e.quantity
-                    productsMoney[e.productName] =
-                        (productsMoney[e.productName] ?: 0) + (e.quantity * e.productPrice)
+                    val key = e.productGroupId
+                    val map = groupProducts.getOrPut(key) { mutableMapOf() }
+                    val existing = map[e.productName] ?: (0 to 0)
+                    val addedQty = existing.first + e.quantity
+                    val addedMoney = existing.second + (e.quantity * e.productPrice)
+                    map[e.productName] = addedQty to addedMoney
                 }
             }
             totalMoney += e.total(settings.hourRate)
@@ -128,38 +130,72 @@ object ExcelExporter {
             sheet.style(row + 1, idxTotalMoney).bold().set()
         }
 
-        // --- СВОДКА ПО ИЗДЕЛИЯМ ---
+        // --- СВОДКА ПО ГРУППАМ И ИЗДЕЛИЯМ ---
         var summaryRow = row + 3
 
-        // Заголовок блока
         sheet.value(summaryRow, 0, t("summary_by_products").uppercase())
         sheet.style(summaryRow, 0).bold().set()
         summaryRow++
 
-        // Шапка таблицы сводки
+        // Шапка
         sheet.value(summaryRow, 0, t("product"))
         sheet.style(summaryRow, 0).bold().set()
         sheet.value(summaryRow, 1, t("quantity"))
         sheet.style(summaryRow, 1).bold().set()
-
         if (showMoney) {
             sheet.value(summaryRow, 2, t("total_money"))
             sheet.style(summaryRow, 2).bold().set()
         }
         summaryRow++
 
-        // Строки по каждому изделию
-        val sortedProducts = productsReady.keys.sorted()
-        if (sortedProducts.isEmpty()) {
+        // Сортируем группы: сначала реальные по имени, потом «Без группы» в конце
+        val namedGroups = groupProducts.keys
+            .filter { it != null }
+            .sortedBy { id ->
+                settings.groups.find { it.id == id }?.name ?: ""
+            }
+        val hasNoGroup = groupProducts.containsKey(null) && (groupProducts[null]?.isNotEmpty() == true)
+
+        val orderedKeys: List<String?> = namedGroups + if (hasNoGroup) listOf(null) else emptyList()
+
+        if (orderedKeys.isEmpty()) {
             sheet.value(summaryRow, 0, "—")
             summaryRow++
         } else {
-            sortedProducts.forEach { name ->
-                val qty = productsReady[name] ?: 0
-                sheet.value(summaryRow, 0, name)
-                sheet.value(summaryRow, 1, qty)
+            orderedKeys.forEach { groupId ->
+                val groupName = if (groupId == null) t("no_group")
+                    else settings.groups.find { it.id == groupId }?.name ?: t("no_group")
+                val productsMap = groupProducts[groupId] ?: emptyMap<String, Pair<Int, Int>>()
+
+                // Заголовок группы
+                sheet.value(summaryRow, 0, "▶ $groupName")
+                sheet.style(summaryRow, 0).bold().set()
+                summaryRow++
+
+                var groupQty = 0
+                var groupMoney = 0
+
+                // Изделия внутри группы
+                productsMap.keys.sorted().forEach { name ->
+                    val (qty, money) = productsMap[name] ?: (0 to 0)
+                    sheet.value(summaryRow, 0, "   $name")
+                    sheet.value(summaryRow, 1, qty)
+                    if (showMoney) {
+                        sheet.value(summaryRow, 2, money)
+                    }
+                    groupQty += qty
+                    groupMoney += money
+                    summaryRow++
+                }
+
+                // Промежуточный итог по группе
+                sheet.value(summaryRow, 0, "   ${t("total_for_group")}: $groupName")
+                sheet.style(summaryRow, 0).bold().set()
+                sheet.value(summaryRow, 1, groupQty)
+                sheet.style(summaryRow, 1).bold().set()
                 if (showMoney) {
-                    sheet.value(summaryRow, 2, productsMoney[name] ?: 0)
+                    sheet.value(summaryRow, 2, groupMoney)
+                    sheet.style(summaryRow, 2).bold().set()
                 }
                 summaryRow++
             }
