@@ -36,7 +36,7 @@ object ExcelExporter {
         val workbook = Workbook(fos, "OvertimeTracker", "1.0")
         val sheet: Worksheet = workbook.newWorksheet("Report")
 
-        // Колонки: без заготовок и процентов — только готовые
+        // --- Заголовки ---
         val headers = mutableListOf(
             t("date"),
             t("type"),
@@ -64,6 +64,11 @@ object ExcelExporter {
         var totalReady = 0
         var totalMoney = 0
 
+        // Для сводки
+        val productsReady = mutableMapOf<String, Int>()
+        val productsMoney = mutableMapOf<String, Int>()
+        var hoursMoney = 0
+
         val idxTotalTime = 6
         val idxReady = 8
         val idxTotalMoney = if (showMoney) 11 else -1
@@ -90,15 +95,27 @@ object ExcelExporter {
                 sheet.value(row, col++, e.total(settings.hourRate))
             }
 
+            // Накапливаем
             if (e.type == EntryType.HOURS || e.type == EntryType.MIXED) {
                 totalMinutes += e.durationMinutes()
+                if (showMoney) {
+                    hoursMoney += (e.durationHours() * e.effectiveHourRate(settings.hourRate)).toInt()
+                }
             }
-            totalReady += e.quantity
+            if (e.type == EntryType.PRODUCTS || e.type == EntryType.MIXED) {
+                totalReady += e.quantity
+                if (e.productName.isNotBlank()) {
+                    productsReady[e.productName] =
+                        (productsReady[e.productName] ?: 0) + e.quantity
+                    productsMoney[e.productName] =
+                        (productsMoney[e.productName] ?: 0) + (e.quantity * e.productPrice)
+                }
+            }
             totalMoney += e.total(settings.hourRate)
             row++
         }
 
-        // Итого
+        // --- ИТОГО ЗА МЕСЯЦ ---
         sheet.value(row + 1, 0, t("month_total").uppercase())
         sheet.style(row + 1, 0).bold().set()
         sheet.value(row + 1, idxTotalTime, totalMinutes / 60.0)
@@ -109,6 +126,58 @@ object ExcelExporter {
         if (showMoney) {
             sheet.value(row + 1, idxTotalMoney, totalMoney)
             sheet.style(row + 1, idxTotalMoney).bold().set()
+        }
+
+        // --- СВОДКА ПО ИЗДЕЛИЯМ ---
+        var summaryRow = row + 3
+
+        // Заголовок блока
+        sheet.value(summaryRow, 0, t("summary_by_products").uppercase())
+        sheet.style(summaryRow, 0).bold().set()
+        summaryRow++
+
+        // Шапка таблицы сводки
+        sheet.value(summaryRow, 0, t("product"))
+        sheet.style(summaryRow, 0).bold().set()
+        sheet.value(summaryRow, 1, t("quantity"))
+        sheet.style(summaryRow, 1).bold().set()
+
+        if (showMoney) {
+            sheet.value(summaryRow, 2, t("total_money"))
+            sheet.style(summaryRow, 2).bold().set()
+        }
+        summaryRow++
+
+        // Строки по каждому изделию
+        val sortedProducts = productsReady.keys.sorted()
+        if (sortedProducts.isEmpty()) {
+            sheet.value(summaryRow, 0, "—")
+            summaryRow++
+        } else {
+            sortedProducts.forEach { name ->
+                val qty = productsReady[name] ?: 0
+                sheet.value(summaryRow, 0, name)
+                sheet.value(summaryRow, 1, qty)
+                if (showMoney) {
+                    sheet.value(summaryRow, 2, productsMoney[name] ?: 0)
+                }
+                summaryRow++
+            }
+        }
+
+        // Часы и деньги за часы
+        if (showMoney) {
+            summaryRow++
+            sheet.value(summaryRow, 0, t("total_hours"))
+            sheet.style(summaryRow, 0).bold().set()
+            sheet.value(summaryRow, 1, "%.2f".format(totalMinutes / 60.0))
+            sheet.style(summaryRow, 1).bold().set()
+
+            summaryRow++
+            sheet.value(summaryRow, 0, t("hours_money"))
+            sheet.style(summaryRow, 0).bold().set()
+            sheet.value(summaryRow, 2, hoursMoney)
+            sheet.style(summaryRow, 2).bold().set()
         }
 
         workbook.finish()
