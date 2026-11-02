@@ -42,12 +42,13 @@ fun PreviewDialog(
     val currency = appState.currencyLabel()
     val showMoney = appState.settings.showMoneyInExport
 
-    // Накапливаем сводку
+    // Итого
     var totalHours = 0.0
     var totalMoney = 0
-    val productsReady = mutableMapOf<String, Int>()
-    val productsMoney = mutableMapOf<String, Int>()
     var hoursMoney = 0
+
+    // Сводка: groupId -> (productName -> (qty, money))
+    val groupProducts = mutableMapOf<String?, MutableMap<String, Pair<Int, Int>>>()
 
     monthEntries.forEach { e ->
         if (e.type == EntryType.HOURS || e.type == EntryType.MIXED) {
@@ -56,14 +57,22 @@ fun PreviewDialog(
         }
         if (e.type == EntryType.PRODUCTS || e.type == EntryType.MIXED) {
             if (e.productName.isNotBlank()) {
-                productsReady[e.productName] =
-                    (productsReady[e.productName] ?: 0) + e.quantity
-                productsMoney[e.productName] =
-                    (productsMoney[e.productName] ?: 0) + (e.quantity * e.productPrice)
+                val map = groupProducts.getOrPut(e.productGroupId) { mutableMapOf() }
+                val existing = map[e.productName] ?: (0 to 0)
+                map[e.productName] = (existing.first + e.quantity) to
+                        (existing.second + (e.quantity * e.productPrice))
             }
         }
         totalMoney += e.total(hourRate)
     }
+
+    // Порядок групп
+    val namedGroups = groupProducts.keys
+        .filter { it != null }
+        .sortedBy { id -> appState.groupName(id) }
+    val hasNoGroup = groupProducts.containsKey(null) &&
+            (groupProducts[null]?.isNotEmpty() == true)
+    val orderedKeys: List<String?> = namedGroups + if (hasNoGroup) listOf(null) else emptyList()
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -75,6 +84,7 @@ fun PreviewDialog(
         },
         text = {
             Column {
+                // Switch «Показать деньги»
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -94,10 +104,10 @@ fun PreviewDialog(
 
                 Column(
                     modifier = Modifier
-                        .heightIn(max = 380.dp)
+                        .heightIn(max = 420.dp)
                         .verticalScroll(rememberScrollState())
                 ) {
-                    // --- Заголовки ---
+                    // --- Таблица записей ---
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -120,7 +130,6 @@ fun PreviewDialog(
                         }
                     }
 
-                    // --- Строки ---
                     monthEntries.forEach { e ->
                         val durH = if (e.type == EntryType.HOURS || e.type == EntryType.MIXED)
                             e.durationHours() else 0.0
@@ -182,7 +191,7 @@ fun PreviewDialog(
 
                     Spacer(Modifier.height(12.dp))
 
-                    // --- СВОДКА ПО ИЗДЕЛИЯМ ---
+                    // --- СВОДКА ПО ГРУППАМ ---
                     Text(
                         text = appState.t("summary_by_products").uppercase(),
                         style = MaterialTheme.typography.titleSmall,
@@ -191,43 +200,88 @@ fun PreviewDialog(
 
                     Spacer(Modifier.height(4.dp))
 
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(MaterialTheme.colorScheme.surfaceVariant)
-                            .padding(4.dp)
-                    ) {
-                        HeaderCell(appState.t("product"), 120.dp)
-                        HeaderCell(appState.t("quantity"), 60.dp)
-                        if (showMoney) {
-                            HeaderCell(appState.t("total_money"), 80.dp)
-                        }
-                    }
-
-                    val sortedProducts = productsReady.keys.sorted()
-                    if (sortedProducts.isEmpty()) {
-                        Row(modifier = Modifier.fillMaxWidth().padding(4.dp)) {
-                            BodyCell("—", 120.dp)
-                        }
+                    if (orderedKeys.isEmpty()) {
+                        Text("—", style = MaterialTheme.typography.bodySmall)
                     } else {
-                        sortedProducts.forEach { name ->
+                        orderedKeys.forEach { groupId ->
+                            val groupName = if (groupId == null) appState.t("no_group")
+                            else appState.groupName(groupId).ifBlank { appState.t("no_group") }
+                            val productsMap = groupProducts[groupId] ?: emptyMap()
+
+                            // Заголовок группы
+                            Text(
+                                text = "▶ $groupName",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(top = 8.dp, bottom = 2.dp)
+                            )
+
+                            // Шапка мини-таблицы
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(vertical = 2.dp)
+                                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                                    .padding(2.dp)
                             ) {
-                                BodyCell(name, 120.dp)
-                                BodyCell((productsReady[name] ?: 0).toString(), 60.dp)
+                                HeaderCell(appState.t("product"), 140.dp)
+                                HeaderCell(appState.t("quantity"), 60.dp)
                                 if (showMoney) {
-                                    BodyCell(
-                                        "${productsMoney[name] ?: 0} $currency",
-                                        80.dp
+                                    HeaderCell(appState.t("total_money"), 90.dp)
+                                }
+                            }
+
+                            var groupQty = 0
+                            var groupMoney = 0
+
+                            productsMap.keys.sorted().forEach { name ->
+                                val (qty, money) = productsMap[name] ?: (0 to 0)
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 2.dp, horizontal = 4.dp)
+                                ) {
+                                    BodyCell(name, 140.dp)
+                                    BodyCell(qty.toString(), 60.dp)
+                                    if (showMoney) {
+                                        BodyCell("$money $currency", 90.dp)
+                                    }
+                                }
+                                groupQty += qty
+                                groupMoney += money
+                            }
+
+                            // Промежуточный итог
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 2.dp, horizontal = 4.dp)
+                            ) {
+                                Text(
+                                    text = "${appState.t("total_for_group")}: $groupName",
+                                    modifier = Modifier.width(140.dp),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = groupQty.toString(),
+                                    modifier = Modifier.width(60.dp),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                if (showMoney) {
+                                    Text(
+                                        text = "$groupMoney $currency",
+                                        modifier = Modifier.width(90.dp),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontWeight = FontWeight.Bold
                                     )
                                 }
                             }
                         }
                     }
 
+                    // Часы и деньги за часы
                     if (showMoney) {
                         Spacer(Modifier.height(8.dp))
 
