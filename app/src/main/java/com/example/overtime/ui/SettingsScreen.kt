@@ -25,6 +25,7 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -36,6 +37,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.overtime.AppState
@@ -45,6 +47,8 @@ import java.time.LocalTime
 
 @Composable
 fun SettingsScreen(appState: AppState) {
+    val context = LocalContext.current
+
     var hourRateText by remember { mutableStateOf(appState.settings.hourRate.toString()) }
     var showProductDialog by remember { mutableStateOf(false) }
     var editingProduct by remember { mutableStateOf<Product?>(null) }
@@ -54,6 +58,8 @@ fun SettingsScreen(appState: AppState) {
 
     var showSetPinDialog by remember { mutableStateOf(false) }
     var showReminderTimePicker by remember { mutableStateOf(false) }
+
+    var showImportConfirm by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -284,6 +290,34 @@ fun SettingsScreen(appState: AppState) {
                 }
             }
 
+            // --- Резервная копия ---
+            item {
+                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = appState.t("backup"),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(onClick = { appState.exportBackup(context) }) {
+                                Text(appState.t("export_backup"))
+                            }
+                            OutlinedButton(onClick = { showImportConfirm = true }) {
+                                Text(appState.t("import_backup"))
+                            }
+                        }
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = appState.t("backup_hint"),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
             // --- Группы изделий ---
             item {
                 Row(
@@ -424,6 +458,28 @@ fun SettingsScreen(appState: AppState) {
         }
     }
 
+    // Диалог подтверждения импорта
+    if (showImportConfirm) {
+        AlertDialog(
+            onDismissRequest = { showImportConfirm = false },
+            title = { Text(appState.t("import_backup")) },
+            text = { Text(appState.t("import_warning")) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showImportConfirm = false
+                    appState.importBackup(context)
+                }) {
+                    Text(appState.t("yes"))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showImportConfirm = false }) {
+                    Text(appState.t("cancel"))
+                }
+            }
+        )
+    }
+
     if (showReminderTimePicker) {
         WheelTimeDialog(
             initialTime = LocalTime.of(
@@ -556,7 +612,6 @@ private fun ProductDialog(
                     singleLine = true
                 )
 
-                // Выпадающий список групп
                 ExposedDropdownMenuBox(
                     expanded = groupExpanded,
                     onExpandedChange = { groupExpanded = it }
