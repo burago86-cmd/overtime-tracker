@@ -7,6 +7,7 @@ import androidx.compose.runtime.setValue
 import com.example.overtime.data.AppSettings
 import com.example.overtime.data.Entry
 import com.example.overtime.data.Product
+import com.example.overtime.data.ProductGroup
 import com.example.overtime.data.Storage
 import com.example.overtime.util.NotificationScheduler
 import com.example.overtime.util.Strings
@@ -22,17 +23,11 @@ class AppState(context: Context) {
     var settings by mutableStateOf(AppSettings())
         private set
 
-    // --- PIN ---
-    // Разблокировано ли приложение сейчас
     var isUnlocked by mutableStateOf(false)
         private set
 
-    // Время последнего сворачивания (0 = не сворачивали)
     var lastPauseTime by mutableStateOf(0L)
-
-    // Счётчик неудачных попыток
     var failedPinAttempts by mutableStateOf(0)
-    // Время, до которого заблокирован ввод (0 = не заблокирован)
     var pinLockedUntil by mutableStateOf(0L)
 
     init {
@@ -71,77 +66,45 @@ class AppState(context: Context) {
     }
 
     // --- PIN ---
-
     fun setPin(pin: String) {
         settings = settings.copy(pin = pin, pinEnabled = true)
         persist()
     }
-
     fun disablePin() {
         settings = settings.copy(pin = "", pinEnabled = false)
         persist()
     }
-
     fun setPinEnabled(enabled: Boolean) {
         settings = settings.copy(pinEnabled = enabled)
         persist()
     }
-
     fun setLockAfterMinutes(minutes: Int) {
         settings = settings.copy(lockAfterMinutes = minutes)
         persist()
     }
-
     fun unlock() {
         isUnlocked = true
         failedPinAttempts = 0
         pinLockedUntil = 0L
     }
-
-    fun lock() {
-        isUnlocked = false
-    }
-
-    fun onAppPaused() {
-        lastPauseTime = System.currentTimeMillis()
-    }
-
+    fun lock() { isUnlocked = false }
+    fun onAppPaused() { lastPauseTime = System.currentTimeMillis() }
     fun onAppResumed() {
-        if (!settings.pinEnabled) {
-            isUnlocked = true
-            return
-        }
-        // Если PIN включён — проверяем, прошло ли lockAfterMinutes
+        if (!settings.pinEnabled) { isUnlocked = true; return }
         val elapsed = System.currentTimeMillis() - lastPauseTime
         val thresholdMs = settings.lockAfterMinutes * 60L * 1000L
-        if (lastPauseTime == 0L || elapsed >= thresholdMs) {
-            isUnlocked = false
-        }
+        if (lastPauseTime == 0L || elapsed >= thresholdMs) isUnlocked = false
     }
-
-    /**
-     * Попытка ввода PIN. Возвращает true если верный.
-     */
     fun tryPin(input: String): Boolean {
         if (System.currentTimeMillis() < pinLockedUntil) return false
-
-        if (input == settings.pin) {
-            unlock()
-            return true
-        }
-
+        if (input == settings.pin) { unlock(); return true }
         failedPinAttempts++
         if (failedPinAttempts >= 5) {
-            // Блокировка на 30 секунд
             pinLockedUntil = System.currentTimeMillis() + 30_000L
             failedPinAttempts = 0
         }
         return false
     }
-
-    /**
-     * Сброс всех данных (при «Забыл PIN»).
-     */
     fun wipeAllData() {
         storage.wipe()
         entries = emptyList()
@@ -150,42 +113,28 @@ class AppState(context: Context) {
     }
 
     // --- Напоминание ---
-
     fun setReminderEnabled(enabled: Boolean) {
         settings = settings.copy(reminderEnabled = enabled)
         persist()
-        if (enabled) {
-            NotificationScheduler.schedule(
-                appContext,
-                settings.reminderHour,
-                settings.reminderMinute
-            )
-        } else {
-            NotificationScheduler.cancel(appContext)
-        }
+        if (enabled) NotificationScheduler.schedule(appContext, settings.reminderHour, settings.reminderMinute)
+        else NotificationScheduler.cancel(appContext)
     }
-
     fun setReminderTime(hour: Int, minute: Int) {
         settings = settings.copy(reminderHour = hour, reminderMinute = minute)
         persist()
-        if (settings.reminderEnabled) {
-            NotificationScheduler.schedule(appContext, hour, minute)
-        }
+        if (settings.reminderEnabled) NotificationScheduler.schedule(appContext, hour, minute)
     }
 
     // --- Записи ---
-
     fun addEntry(entry: Entry) {
         entries = (entries + entry).sortedByDescending { it.date }
         persist()
     }
-
     fun updateEntry(entry: Entry) {
         entries = entries.map { if (it.id == entry.id) entry else it }
             .sortedByDescending { it.date }
         persist()
     }
-
     fun deleteEntry(id: String) {
         entries = entries.filterNot { it.id == id }
         persist()
@@ -196,28 +145,56 @@ class AppState(context: Context) {
         persist()
     }
 
-    fun addProduct(name: String, price: Int) {
+    // --- Изделия ---
+    fun addProduct(name: String, price: Int, groupId: String? = null) {
         val newProduct = Product(
             id = Storage.newId(),
             name = name,
-            price = price
+            price = price,
+            groupId = groupId
         )
         settings = settings.copy(products = settings.products + newProduct)
         persist()
     }
-
-    fun updateProduct(id: String, name: String, price: Int) {
+    fun updateProduct(id: String, name: String, price: Int, groupId: String? = null) {
         settings = settings.copy(
             products = settings.products.map {
-                if (it.id == id) it.copy(name = name, price = price) else it
+                if (it.id == id) it.copy(name = name, price = price, groupId = groupId) else it
             }
         )
         persist()
     }
-
     fun deleteProduct(id: String) {
         settings = settings.copy(products = settings.products.filterNot { it.id == id })
         persist()
+    }
+
+    // --- Группы ---
+    fun addGroup(name: String) {
+        val newGroup = ProductGroup(id = Storage.newId(), name = name)
+        settings = settings.copy(groups = settings.groups + newGroup)
+        persist()
+    }
+    fun updateGroup(id: String, name: String) {
+        settings = settings.copy(
+            groups = settings.groups.map { if (it.id == id) it.copy(name = name) else it }
+        )
+        persist()
+    }
+    fun deleteGroup(id: String) {
+        // Сначала сбрасываем groupId у изделий этой группы
+        val updatedProducts = settings.products.map {
+            if (it.groupId == id) it.copy(groupId = null) else it
+        }
+        settings = settings.copy(
+            groups = settings.groups.filterNot { it.id == id },
+            products = updatedProducts
+        )
+        persist()
+    }
+    fun groupName(groupId: String?): String {
+        if (groupId == null) return ""
+        return settings.groups.find { it.id == groupId }?.name ?: ""
     }
 
     private fun persist() {
