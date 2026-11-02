@@ -18,6 +18,10 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -32,11 +36,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.overtime.AppState
 import com.example.overtime.data.Product
+import com.example.overtime.data.ProductGroup
 import java.time.LocalTime
 
 @Composable
@@ -44,6 +48,9 @@ fun SettingsScreen(appState: AppState) {
     var hourRateText by remember { mutableStateOf(appState.settings.hourRate.toString()) }
     var showProductDialog by remember { mutableStateOf(false) }
     var editingProduct by remember { mutableStateOf<Product?>(null) }
+
+    var showGroupDialog by remember { mutableStateOf(false) }
+    var editingGroup by remember { mutableStateOf<ProductGroup?>(null) }
 
     var showSetPinDialog by remember { mutableStateOf(false) }
     var showReminderTimePicker by remember { mutableStateOf(false) }
@@ -63,6 +70,7 @@ fun SettingsScreen(appState: AppState) {
 
         LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
 
+            // Ставка
             item {
                 Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
                     Column(modifier = Modifier.padding(16.dp)) {
@@ -95,6 +103,7 @@ fun SettingsScreen(appState: AppState) {
                 }
             }
 
+            // Валюта
             item {
                 Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
                     Column(modifier = Modifier.padding(16.dp)) {
@@ -118,6 +127,7 @@ fun SettingsScreen(appState: AppState) {
                 }
             }
 
+            // Язык
             item {
                 Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
                     Column(modifier = Modifier.padding(16.dp)) {
@@ -141,6 +151,7 @@ fun SettingsScreen(appState: AppState) {
                 }
             }
 
+            // Тёмная тема
             item {
                 Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
                     Row(
@@ -163,6 +174,7 @@ fun SettingsScreen(appState: AppState) {
                 }
             }
 
+            // Проценты
             item {
                 Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
                     Column(modifier = Modifier.padding(16.dp)) {
@@ -190,7 +202,7 @@ fun SettingsScreen(appState: AppState) {
                 }
             }
 
-            // PIN-код
+            // PIN
             item {
                 Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
                     Column(modifier = Modifier.padding(16.dp)) {
@@ -207,11 +219,8 @@ fun SettingsScreen(appState: AppState) {
                             Switch(
                                 checked = appState.settings.pinEnabled,
                                 onCheckedChange = { enabled ->
-                                    if (enabled) {
-                                        showSetPinDialog = true
-                                    } else {
-                                        appState.disablePin()
-                                    }
+                                    if (enabled) showSetPinDialog = true
+                                    else appState.disablePin()
                                 }
                             )
                         }
@@ -275,7 +284,71 @@ fun SettingsScreen(appState: AppState) {
                 }
             }
 
-            // Справочник изделий
+            // --- Группы изделий ---
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = appState.t("product_groups"),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Button(onClick = {
+                        editingGroup = null
+                        showGroupDialog = true
+                    }) {
+                        Icon(Icons.Filled.Add, contentDescription = null)
+                        Spacer(Modifier.padding(start = 4.dp))
+                        Text(appState.t("add_group"))
+                    }
+                }
+            }
+
+            if (appState.settings.groups.isEmpty()) {
+                item {
+                    Text(
+                        text = "—",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else {
+                items(appState.settings.groups, key = { it.id }) { group ->
+                    Card {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = group.name,
+                                modifier = Modifier.weight(1f),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                            IconButton(onClick = {
+                                editingGroup = group
+                                showGroupDialog = true
+                            }) {
+                                Icon(Icons.Filled.Edit, contentDescription = appState.t("edit_entry"))
+                            }
+                            IconButton(onClick = { appState.deleteGroup(group.id) }) {
+                                Icon(
+                                    Icons.Filled.Delete,
+                                    contentDescription = appState.t("delete"),
+                                    tint = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // --- Справочник изделий ---
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -322,7 +395,10 @@ fun SettingsScreen(appState: AppState) {
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    text = "${product.price} ${appState.currencyLabel()}",
+                                    text = "${product.price} ${appState.currencyLabel()}" +
+                                            if (product.groupId != null)
+                                                " • ${appState.groupName(product.groupId)}"
+                                            else "",
                                     style = MaterialTheme.typography.bodySmall
                                 )
                             }
@@ -363,18 +439,29 @@ fun SettingsScreen(appState: AppState) {
         )
     }
 
+    if (showGroupDialog) {
+        GroupDialog(
+            appState = appState,
+            existing = editingGroup,
+            onDismiss = { showGroupDialog = false },
+            onSave = { name ->
+                val editing = editingGroup
+                if (editing == null) appState.addGroup(name)
+                else appState.updateGroup(editing.id, name)
+                showGroupDialog = false
+            }
+        )
+    }
+
     if (showProductDialog) {
         ProductDialog(
             appState = appState,
             existing = editingProduct,
             onDismiss = { showProductDialog = false },
-            onSave = { name, price ->
+            onSave = { name, price, groupId ->
                 val editing = editingProduct
-                if (editing == null) {
-                    appState.addProduct(name, price)
-                } else {
-                    appState.updateProduct(editing.id, name, price)
-                }
+                if (editing == null) appState.addProduct(name, price, groupId)
+                else appState.updateProduct(editing.id, name, price, groupId)
                 showProductDialog = false
             }
         )
@@ -390,6 +477,135 @@ fun SettingsScreen(appState: AppState) {
             }
         )
     }
+}
+
+@Composable
+private fun GroupDialog(
+    appState: AppState,
+    existing: ProductGroup?,
+    onDismiss: () -> Unit,
+    onSave: (String) -> Unit
+) {
+    var name by remember { mutableStateOf(existing?.name ?: "") }
+    val valid = name.isNotBlank()
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(if (existing == null) appState.t("add_group") else appState.t("edit_entry"))
+        },
+        text = {
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text(appState.t("group_name")) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onSave(name.trim()) },
+                enabled = valid
+            ) { Text(appState.t("save")) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(appState.t("cancel")) }
+        }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ProductDialog(
+    appState: AppState,
+    existing: Product?,
+    onDismiss: () -> Unit,
+    onSave: (name: String, price: Int, groupId: String?) -> Unit
+) {
+    var name by remember { mutableStateOf(existing?.name ?: "") }
+    var priceText by remember { mutableStateOf(existing?.price?.toString() ?: "") }
+    var groupId by remember { mutableStateOf(existing?.groupId) }
+    var groupExpanded by remember { mutableStateOf(false) }
+
+    val valid = name.isNotBlank() && (priceText.toIntOrNull() ?: 0) > 0
+    val groups = appState.settings.groups
+    val noGroupLabel = appState.t("no_group")
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(if (existing == null) appState.t("add_product") else appState.t("edit_entry"))
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text(appState.t("product_name")) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                OutlinedTextField(
+                    value = priceText,
+                    onValueChange = { new ->
+                        if (new.all { it.isDigit() }) priceText = new
+                    },
+                    label = { Text("${appState.t("product_price")} (${appState.currencyLabel()})") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+
+                // Выпадающий список групп
+                ExposedDropdownMenuBox(
+                    expanded = groupExpanded,
+                    onExpandedChange = { groupExpanded = it }
+                ) {
+                    val selectedGroupName = groups.find { it.id == groupId }?.name
+                    OutlinedTextField(
+                        value = selectedGroupName ?: noGroupLabel,
+                        onValueChange = { },
+                        readOnly = true,
+                        label = { Text(appState.t("group")) },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = groupExpanded) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = groupExpanded,
+                        onDismissRequest = { groupExpanded = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text(noGroupLabel) },
+                            onClick = {
+                                groupId = null
+                                groupExpanded = false
+                            }
+                        )
+                        groups.forEach { g ->
+                            DropdownMenuItem(
+                                text = { Text(g.name) },
+                                onClick = {
+                                    groupId = g.id
+                                    groupExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onSave(name.trim(), priceText.toIntOrNull() ?: 0, groupId) },
+                enabled = valid
+            ) { Text(appState.t("save")) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(appState.t("cancel")) }
+        }
+    )
 }
 
 @Composable
@@ -455,62 +671,6 @@ private fun SetPinDialog(
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text(appState.t("cancel")) }
-        }
-    )
-}
-
-@Composable
-private fun ProductDialog(
-    appState: AppState,
-    existing: Product?,
-    onDismiss: () -> Unit,
-    onSave: (name: String, price: Int) -> Unit
-) {
-    var name by remember { mutableStateOf(existing?.name ?: "") }
-    var priceText by remember { mutableStateOf(existing?.price?.toString() ?: "") }
-
-    val valid = name.isNotBlank() && (priceText.toIntOrNull() ?: 0) > 0
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                if (existing == null) appState.t("add_product")
-                else appState.t("edit_entry")
-            )
-        },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text(appState.t("product_name")) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-                OutlinedTextField(
-                    value = priceText,
-                    onValueChange = { new ->
-                        if (new.all { it.isDigit() }) priceText = new
-                    },
-                    label = { Text("${appState.t("product_price")} (${appState.currencyLabel()})") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = { onSave(name.trim(), priceText.toIntOrNull() ?: 0) },
-                enabled = valid
-            ) {
-                Text(appState.t("save"))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(appState.t("cancel"))
-            }
         }
     )
 }
