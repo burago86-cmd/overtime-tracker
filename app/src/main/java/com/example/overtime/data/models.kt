@@ -10,10 +10,19 @@ enum class EntryType {
     MIXED
 }
 
+/**
+ * Группа изделий (например, «Пайка», «Сборка», «Покраска»).
+ */
+data class ProductGroup(
+    val id: String,
+    val name: String
+)
+
 data class Product(
     val id: String,
     val name: String,
-    val price: Int
+    val price: Int,
+    val groupId: String? = null     // null = «Без группы»
 )
 
 data class Entry(
@@ -35,6 +44,9 @@ data class Entry(
     val quantity: Int = 0,
     val inProgress: Int = 0,
     val progressPercent: Int? = null,
+
+    // Дублируем groupId — на случай, если изделие удалят или переименуют группу
+    val productGroupId: String? = null,
 
     val comment: String = ""
 ) {
@@ -93,17 +105,16 @@ data class AppSettings(
     val currency: String = "BYN",
     val darkTheme: Boolean = true,
     val products: List<Product> = emptyList(),
+    val groups: List<ProductGroup> = emptyList(),
     val showMoneyInExport: Boolean = true,
     val showProgressPercent: Boolean = false,
 
-    // --- PIN ---
     val pinEnabled: Boolean = false,
     val pin: String = "",
-    val lockAfterMinutes: Int = 5,   // через сколько минут после сворачивания спрашивать PIN
+    val lockAfterMinutes: Int = 5,
 
-    // --- Напоминание ---
     val reminderEnabled: Boolean = false,
-    val reminderHour: Int = 21,      // 21:00
+    val reminderHour: Int = 21,
     val reminderMinute: Int = 0
 )
 
