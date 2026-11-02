@@ -1,21 +1,30 @@
 package com.example.overtime
 
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
+import androidx.activity.result.ActivityResultLauncher
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.core.content.FileProvider
 import com.example.overtime.data.AppSettings
 import com.example.overtime.data.Entry
 import com.example.overtime.data.Product
 import com.example.overtime.data.ProductGroup
 import com.example.overtime.data.Storage
+import com.example.overtime.data.StorageDto
 import com.example.overtime.util.NotificationScheduler
 import com.example.overtime.util.Strings
+import kotlinx.serialization.json.Json
+import java.io.File
 
 class AppState(context: Context) {
 
     private val storage = Storage(context)
     private val appContext = context.applicationContext
+    private val json = Json { prettyPrint = true; ignoreUnknownKeys = true }
 
     var entries by mutableStateOf<List<Entry>>(emptyList())
         private set
@@ -182,7 +191,6 @@ class AppState(context: Context) {
         persist()
     }
     fun deleteGroup(id: String) {
-        // Сначала сбрасываем groupId у изделий этой группы
         val updatedProducts = settings.products.map {
             if (it.groupId == id) it.copy(groupId = null) else it
         }
@@ -195,6 +203,82 @@ class AppState(context: Context) {
     fun groupName(groupId: String?): String {
         if (groupId == null) return ""
         return settings.groups.find { it.id == groupId }?.name ?: ""
+    }
+
+    // --- Резервная копия ---
+
+    /**
+     * Экспортирует текущую базу в JSON-файл и открывает «Поделиться».
+     */
+    fun exportBackup(context: Context) {
+        try {
+            storage.save(entries, settings)
+
+            val dataFile = File(context.filesDir, "overtime_data.json")
+            if (!dataFile.exists()) {
+                Toast.makeText(context, "Файл данных не найден", Toast.LENGTH_SHORT).show()
+                return
+            }
+
+            val exportFile = File(context.cacheDir, "overtime_backup.json")
+            dataFile.copyTo(exportFile, overwrite = true)
+
+            val uri = FileProvider.getUriForFile(
+                context,
+                context.packageName + ".fileprovider",
+                exportFile
+            )
+            val intent = Intent(Intent.ACTION_SEND).apply {
+                type = "application/json"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            context.startActivity(Intent.createChooser(intent, "Export backup"))
+        } catch (e: Exception) {
+            Toast.makeText(context, "Ошибка экспорта: ${e.message}", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    /**
+     * Открывает системный выбор файла для импорта.
+     */
+    fun importBackup(context: Context, launcher: ActivityResultLauncher<Intent>) {
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "*/*"
+        }
+        launcher.launch(intent)
+    }
+
+    /**
+     * Обработка выбранного файла (вызывается после выбора).
+     */
+    fun handleImportUri(context: Context, uri: Uri) {
+        try {
+            val inputStream = context.contentResolver.openInputStream(uri)
+            if (inputStream == null) {
+                Toast.makeText(context, "Не удалось открыть файл", Toast.LENGTH_LONG).show()
+                return
+            }
+            val text = inputStream.bufferedReader().use { it.readText() }
+            inputStream.close()
+
+            // Проверяем валидность JSON
+            json.decodeFromString<StorageDto>(text)
+
+            // Сохраняем во внутренний файл
+            val dataFile = File(context.filesDir, "overtime_data.json")
+            dataFile.writeText(text)
+
+            // Перезагружаем состояние
+            val (loadedEntries, loadedSettings) = storage.load()
+            entries = loadedEntries
+            settings = loadedSettings
+
+            Toast.makeText(context, "Импорт завершён", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Toast.makeText(context, "Ошибка импорта: ${e.message}", Toast.LENGTH_LONG).show()
+        }
     }
 
     private fun persist() {
