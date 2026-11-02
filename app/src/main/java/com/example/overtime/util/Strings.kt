@@ -103,7 +103,12 @@ object Strings {
         "group" to "Группа",
         "no_group" to "Без группы",
         "total_for_group" to "Итого по группе",
-        "kits" to "Комплектов"
+        "kits" to "Комплектов",
+        "backup" to "Резервная копия",
+        "export_backup" to "Экспорт базы",
+        "import_backup" to "Импорт базы",
+        "backup_hint" to "Сохраните JSON-файл с данными, чтобы восстановить их при необходимости",
+        "import_warning" to "Текущие данные будут заменены данными из файла. Продолжить?"
     )
 
     private val en = mapOf(
@@ -207,7 +212,12 @@ object Strings {
         "group" to "Group",
         "no_group" to "No group",
         "total_for_group" to "Group total",
-        "kits" to "Kits"
+        "kits" to "Kits",
+        "backup" to "Backup",
+        "export_backup" to "Export data",
+        "import_backup" to "Import data",
+        "backup_hint" to "Save JSON file with your data to restore it later",
+        "import_warning" to "Current data will be replaced with data from the file. Continue?"
     )
 
     fun t(key: String, lang: String): String {
