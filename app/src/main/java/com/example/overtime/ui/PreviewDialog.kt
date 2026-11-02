@@ -42,6 +42,29 @@ fun PreviewDialog(
     val currency = appState.currencyLabel()
     val showMoney = appState.settings.showMoneyInExport
 
+    // Накапливаем сводку
+    var totalHours = 0.0
+    var totalMoney = 0
+    val productsReady = mutableMapOf<String, Int>()
+    val productsMoney = mutableMapOf<String, Int>()
+    var hoursMoney = 0
+
+    monthEntries.forEach { e ->
+        if (e.type == EntryType.HOURS || e.type == EntryType.MIXED) {
+            totalHours += e.durationHours()
+            hoursMoney += (e.durationHours() * e.effectiveHourRate(hourRate)).toInt()
+        }
+        if (e.type == EntryType.PRODUCTS || e.type == EntryType.MIXED) {
+            if (e.productName.isNotBlank()) {
+                productsReady[e.productName] =
+                    (productsReady[e.productName] ?: 0) + e.quantity
+                productsMoney[e.productName] =
+                    (productsMoney[e.productName] ?: 0) + (e.quantity * e.productPrice)
+            }
+        }
+        totalMoney += e.total(hourRate)
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
@@ -74,6 +97,7 @@ fun PreviewDialog(
                         .heightIn(max = 380.dp)
                         .verticalScroll(rememberScrollState())
                 ) {
+                    // --- Заголовки ---
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -96,15 +120,11 @@ fun PreviewDialog(
                         }
                     }
 
-                    var totalHours = 0.0
-                    var totalMoney = 0
-
+                    // --- Строки ---
                     monthEntries.forEach { e ->
                         val durH = if (e.type == EntryType.HOURS || e.type == EntryType.MIXED)
                             e.durationHours() else 0.0
                         val money = e.total(hourRate)
-                        totalHours += durH
-                        totalMoney += money
 
                         Row(
                             modifier = Modifier
@@ -143,6 +163,7 @@ fun PreviewDialog(
 
                     Spacer(Modifier.height(8.dp))
 
+                    // --- ИТОГО ---
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
@@ -154,6 +175,85 @@ fun PreviewDialog(
                         if (showMoney) {
                             Text(
                                 text = "${appState.t("total_money")}: $totalMoney $currency",
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    Spacer(Modifier.height(12.dp))
+
+                    // --- СВОДКА ПО ИЗДЕЛИЯМ ---
+                    Text(
+                        text = appState.t("summary_by_products").uppercase(),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Spacer(Modifier.height(4.dp))
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .padding(4.dp)
+                    ) {
+                        HeaderCell(appState.t("product"), 120.dp)
+                        HeaderCell(appState.t("quantity"), 60.dp)
+                        if (showMoney) {
+                            HeaderCell(appState.t("total_money"), 80.dp)
+                        }
+                    }
+
+                    val sortedProducts = productsReady.keys.sorted()
+                    if (sortedProducts.isEmpty()) {
+                        Row(modifier = Modifier.fillMaxWidth().padding(4.dp)) {
+                            BodyCell("—", 120.dp)
+                        }
+                    } else {
+                        sortedProducts.forEach { name ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 2.dp)
+                            ) {
+                                BodyCell(name, 120.dp)
+                                BodyCell((productsReady[name] ?: 0).toString(), 60.dp)
+                                if (showMoney) {
+                                    BodyCell(
+                                        "${productsMoney[name] ?: 0} $currency",
+                                        80.dp
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    if (showMoney) {
+                        Spacer(Modifier.height(8.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = appState.t("total_hours"),
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "%.2f".format(totalHours),
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = appState.t("hours_money"),
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "$hoursMoney $currency",
                                 fontWeight = FontWeight.Bold
                             )
                         }
