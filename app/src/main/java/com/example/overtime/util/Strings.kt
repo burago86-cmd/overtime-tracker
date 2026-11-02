@@ -97,13 +97,13 @@ object Strings {
         "reminder_hint" to "Уведомление, если за сегодня нет ни одной записи",
         "summary_by_products" to "Сводка по изделиям",
         "hours_money" to "Сумма за часы",
-        // --- Группы ---
         "product_groups" to "Группы изделий",
         "add_group" to "Добавить группу",
         "group_name" to "Название группы",
         "group" to "Группа",
         "no_group" to "Без группы",
-        "total_for_group" to "Итого по группе"
+        "total_for_group" to "Итого по группе",
+        "kits" to "Комплектов"
     )
 
     private val en = mapOf(
@@ -201,13 +201,13 @@ object Strings {
         "reminder_hint" to "Notification if there is no entry for today",
         "summary_by_products" to "Summary by products",
         "hours_money" to "Money for hours",
-        // --- Groups ---
         "product_groups" to "Product groups",
         "add_group" to "Add group",
         "group_name" to "Group name",
         "group" to "Group",
         "no_group" to "No group",
-        "total_for_group" to "Group total"
+        "total_for_group" to "Group total",
+        "kits" to "Kits"
     )
 
     fun t(key: String, lang: String): String {
