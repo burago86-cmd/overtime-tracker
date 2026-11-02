@@ -94,7 +94,9 @@ object Strings {
         "reset_data" to "Сбросить данные",
         "lock_after" to "Спрашивать через",
         "reminder" to "Напоминание",
-        "reminder_hint" to "Уведомление, если за сегодня нет ни одной записи"
+        "reminder_hint" to "Уведомление, если за сегодня нет ни одной записи",
+        "summary_by_products" to "Сводка по изделиям",
+        "hours_money" to "Сумма за часы"
     )
 
     private val en = mapOf(
@@ -189,7 +191,9 @@ object Strings {
         "reset_data" to "Reset data",
         "lock_after" to "Ask after",
         "reminder" to "Reminder",
-        "reminder_hint" to "Notification if there is no entry for today"
+        "reminder_hint" to "Notification if there is no entry for today",
+        "summary_by_products" to "Summary by products",
+        "hours_money" to "Money for hours"
     )
 
     fun t(key: String, lang: String): String {
