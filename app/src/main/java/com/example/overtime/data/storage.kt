@@ -1,164 +1,136 @@
 package com.example.overtime.data
 
-import android.content.Context
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.decodeFromString
-import java.io.File
+import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
-import java.util.UUID
 
-@Serializable
-data class EntryDto(
+enum class EntryType {
+    HOURS,
+    PRODUCTS,
+    MIXED
+}
+
+/**
+ * Группа изделий (например, «Пайка», «Сборка», «Покраска»).
+ */
+data class ProductGroup(
     val id: String,
-    val date: String,
-    val type: String,
-    val startTime: String? = null,
-    val endTime: String? = null,
+    val name: String
+)
+
+data class Product(
+    val id: String,
+    val name: String,
+    val price: Int,
+    val groupId: String? = null     // null = «Без группы»
+)
+
+data class Entry(
+    val id: String,
+    val date: LocalDate,
+    val type: EntryType,
+
+    val startTime: LocalTime? = null,
+    val endTime: LocalTime? = null,
+
     val isDayOff: Boolean = false,
     val lunchMinutes: Int = 0,
+
     val customHourRate: Int? = null,
+
     val productId: String? = null,
     val productName: String = "",
     val productPrice: Int = 0,
     val quantity: Int = 0,
     val inProgress: Int = 0,
     val progressPercent: Int? = null,
+
+    // Дублируем groupId — на случай, если изделие удалят или переименуют группу
+    val productGroupId: String? = null,
+
     val comment: String = ""
-)
+) {
+    fun effectiveHourRate(defaultRate: Int): Int =
+        customHourRate ?: defaultRate
 
-@Serializable
-data class ProductDto(
-    val id: String,
-    val name: String,
-    val price: Int
-)
+    fun rawDurationMinutes(): Int {
+        val s = startTime ?: return 0
+        val e = endTime ?: return 0
+        val startMin = s.hour * 60 + s.minute
+        val endMin = e.hour * 60 + e.minute
+        return if (endMin >= startMin) endMin - startMin
+        else (24 * 60 - startMin) + endMin
+    }
 
-@Serializable
-data class SettingsDto(
+    fun durationMinutes(): Int {
+        val raw = rawDurationMinutes()
+        if (raw == 0) return 0
+        val lunch = if (isDayOff) lunchMinutes.coerceAtLeast(0) else 0
+        return (raw - lunch).coerceAtLeast(0)
+    }
+
+    fun durationHours(): Double = durationMinutes() / 60.0
+
+    fun durationText(): String {
+        val m = durationMinutes()
+        val h = m / 60
+        val min = m % 60
+        return when {
+            h == 0 -> "$min мин"
+            min == 0 -> "$h ч"
+            else -> "$h ч $min мин"
+        }
+    }
+
+    fun total(defaultHourRate: Int): Int {
+        val rate = effectiveHourRate(defaultHourRate)
+        val hoursMoney = if (type == EntryType.HOURS || type == EntryType.MIXED)
+            (durationHours() * rate).toInt() else 0
+        val productsMoney = if (type == EntryType.PRODUCTS || type == EntryType.MIXED)
+            quantity * productPrice else 0
+        return hoursMoney + productsMoney
+    }
+
+    companion object {
+        fun isWeekend(date: LocalDate): Boolean {
+            val dow = date.dayOfWeek
+            return dow == DayOfWeek.SATURDAY || dow == DayOfWeek.SUNDAY
+        }
+    }
+}
+
+data class AppSettings(
     val hourRate: Int = 10,
     val language: String = "ru",
     val currency: String = "BYN",
     val darkTheme: Boolean = true,
-    val products: List<ProductDto> = emptyList(),
+    val products: List<Product> = emptyList(),
+    val groups: List<ProductGroup> = emptyList(),
     val showMoneyInExport: Boolean = true,
     val showProgressPercent: Boolean = false,
+
     val pinEnabled: Boolean = false,
     val pin: String = "",
     val lockAfterMinutes: Int = 5,
+
     val reminderEnabled: Boolean = false,
     val reminderHour: Int = 21,
     val reminderMinute: Int = 0
 )
 
-@Serializable
-data class StorageDto(
-    val entries: List<EntryDto> = emptyList(),
-    val settings: SettingsDto = SettingsDto()
-)
-
-class Storage(private val context: Context) {
-
-    private val file = File(context.filesDir, "overtime_data.json")
-    private val json = Json { prettyPrint = true; ignoreUnknownKeys = true }
-
-    fun load(): Pair<List<Entry>, AppSettings> {
-        if (!file.exists()) return emptyList<Entry>() to AppSettings()
-        return try {
-            val dto: StorageDto = json.decodeFromString(file.readText())
-            val entries = dto.entries.mapNotNull { it.toEntry() }
-            val settings = dto.settings.toSettings()
-            entries to settings
-        } catch (e: Exception) {
-            emptyList<Entry>() to AppSettings()
+data class MonthSummary(
+    val totalMinutes: Int = 0,
+    val totalMoney: Int = 0,
+    val productsReady: Map<String, Int> = emptyMap(),
+    val productsInProgress: Map<String, Int> = emptyMap()
+) {
+    fun hoursText(): String {
+        val h = totalMinutes / 60
+        val m = totalMinutes % 60
+        return when {
+            h == 0 -> "$m мин"
+            m == 0 -> "$h ч"
+            else -> "$h ч $m мин"
         }
-    }
-
-    fun save(entries: List<Entry>, settings: AppSettings) {
-        val dto = StorageDto(
-            entries = entries.map { it.toDto() },
-            settings = settings.toDto()
-        )
-        file.writeText(json.encodeToString(dto))
-    }
-
-    fun wipe() {
-        file.delete()
-    }
-
-    private fun Entry.toDto() = EntryDto(
-        id = id,
-        date = date.toString(),
-        type = type.name,
-        startTime = startTime?.toString(),
-        endTime = endTime?.toString(),
-        isDayOff = isDayOff,
-        lunchMinutes = lunchMinutes,
-        customHourRate = customHourRate,
-        productId = productId,
-        productName = productName,
-        productPrice = productPrice,
-        quantity = quantity,
-        inProgress = inProgress,
-        progressPercent = progressPercent,
-        comment = comment
-    )
-
-    private fun EntryDto.toEntry(): Entry? = try {
-        Entry(
-            id = id,
-            date = LocalDate.parse(date),
-            type = EntryType.valueOf(type),
-            startTime = startTime?.let { LocalTime.parse(it) },
-            endTime = endTime?.let { LocalTime.parse(it) },
-            isDayOff = isDayOff,
-            lunchMinutes = lunchMinutes,
-            customHourRate = customHourRate,
-            productId = productId,
-            productName = productName,
-            productPrice = productPrice,
-            quantity = quantity,
-            inProgress = inProgress,
-            progressPercent = progressPercent,
-            comment = comment
-        )
-    } catch (e: Exception) { null }
-
-    private fun AppSettings.toDto() = SettingsDto(
-        hourRate = hourRate,
-        language = language,
-        currency = currency,
-        darkTheme = darkTheme,
-        products = products.map { ProductDto(it.id, it.name, it.price) },
-        showMoneyInExport = showMoneyInExport,
-        showProgressPercent = showProgressPercent,
-        pinEnabled = pinEnabled,
-        pin = pin,
-        lockAfterMinutes = lockAfterMinutes,
-        reminderEnabled = reminderEnabled,
-        reminderHour = reminderHour,
-        reminderMinute = reminderMinute
-    )
-
-    private fun SettingsDto.toSettings() = AppSettings(
-        hourRate = hourRate,
-        language = language,
-        currency = currency,
-        darkTheme = darkTheme,
-        products = products.map { Product(it.id, it.name, it.price) },
-        showMoneyInExport = showMoneyInExport,
-        showProgressPercent = showProgressPercent,
-        pinEnabled = pinEnabled,
-        pin = pin,
-        lockAfterMinutes = lockAfterMinutes,
-        reminderEnabled = reminderEnabled,
-        reminderHour = reminderHour,
-        reminderMinute = reminderMinute
-    )
-
-    companion object {
-        fun newId(): String = UUID.randomUUID().toString()
     }
 }
