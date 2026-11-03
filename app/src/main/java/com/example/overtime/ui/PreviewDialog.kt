@@ -223,7 +223,6 @@ fun PreviewDialog(
                                     .padding(2.dp)
                             ) {
                                 HeaderCell(appState.t("product"), 140.dp)
-                                // Увеличили ширину до 80.dp, чтобы «Количество» влезло в одну строку
                                 HeaderCell(appState.t("quantity"), 80.dp)
                                 if (showMoney) {
                                     HeaderCell(appState.t("total_money"), 90.dp)
@@ -233,8 +232,21 @@ fun PreviewDialog(
                             var groupQty = 0
                             var groupMoney = 0
 
-                            productsMap.keys.sorted().forEach { name ->
-                                val (qty, money) = productsMap[name] ?: (0 to 0)
+                            // Берем все изделия, привязанные к этой группе в справочнике
+                            val catalogNamesInGroup = appState.settings.products
+                                .filter { if (groupId == null) it.groupId == null else it.groupId == groupId }
+                                .map { it.name }
+
+                            // Объединяем со списком того, что производилось
+                            val allNamesSet = mutableSetOf<String>()
+                            catalogNamesInGroup.forEach { allNamesSet.add(it) }
+                            productsMap.keys.forEach { allNamesSet.add(it) }
+                            val sortedNames = allNamesSet.sorted()
+
+                            sortedNames.forEach { name ->
+                                val actualKey = productsMap.keys.find { it.trim().equals(name.trim(), ignoreCase = true) } ?: name
+                                val (qty, money) = productsMap[actualKey] ?: (0 to 0)
+                                
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -279,12 +291,10 @@ fun PreviewDialog(
                             }
 
                             // --- Комплекты ---
-                            // Считаем так же, как в Excel: по ВСЕМ изделиям группы из справочника
-                            val catalogNamesInGroup = appState.settings.products
-                                .filter { if (groupId == null) it.groupId == null else it.groupId == groupId }
-                                .map { it.name }
-                            val allNames = (catalogNamesInGroup + productsMap.keys).toSet()
-                            val kits = allNames.minOfOrNull { productsMap[it]?.first ?: 0 } ?: 0
+                            val kits = sortedNames.minOfOrNull { name ->
+                                val actualKey = productsMap.keys.find { it.trim().equals(name.trim(), ignoreCase = true) }
+                                productsMap[actualKey]?.first ?: 0
+                            } ?: 0
 
                             Row(
                                 modifier = Modifier
