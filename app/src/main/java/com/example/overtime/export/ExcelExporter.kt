@@ -34,13 +34,11 @@ object ExcelExporter {
         val workbook = Workbook(fos, "OvertimeTracker", "1.0")
         val sheet: Worksheet = workbook.newWorksheet("Report")
 
-        // Какие колонки нужны
         val hasHours = monthEntries.any { it.type == EntryType.HOURS || it.type == EntryType.MIXED }
         val hasProducts = monthEntries.any { it.type == EntryType.PRODUCTS || it.type == EntryType.MIXED }
         val hasDayOff = monthEntries.any { it.isDayOff }
         val hasLunch = monthEntries.any { it.isDayOff && it.lunchMinutes > 0 }
 
-        // Считаем итоги
         val groupProducts = mutableMapOf<String?, MutableMap<String, Pair<Int, Int>>>()
         var totalMinutes = 0
         var totalReady = 0
@@ -64,7 +62,6 @@ object ExcelExporter {
             totalMoney += e.total(settings.hourRate)
         }
 
-        // Автоширина: трекер максимума по каждой колонке
         val colWidths = mutableMapOf<Int, Int>()
 
         fun writeStr(row: Int, col: Int, value: String, bold: Boolean = false, bgColor: String? = null) {
@@ -140,7 +137,8 @@ object ExcelExporter {
                     if (showMoney) writeInt(row, 2, money)
                     groupQty += qty
                     groupMoney += money
-                    minQty = if (minQty == null) qty else minOf(minQty, qty)
+                    // ✅ Исправление smart cast
+                    minQty = minQty?.let { minOf(it, qty) } ?: qty
                     row++
                 }
 
@@ -159,7 +157,6 @@ object ExcelExporter {
         writeStr(row, 0, t("details").uppercase(), bold = true)
         row++
 
-        // Легенда (только если типов больше одного)
         val typesInUse = monthEntries.map { it.type }.toSet()
         if (typesInUse.size > 1) {
             writeStr(row, 0, t("legend") + ":")
@@ -176,7 +173,6 @@ object ExcelExporter {
             row++
         }
 
-        // Шапка таблицы — только нужные колонки
         val colMap = mutableMapOf<String, Int>()
         var headerCol = 0
 
@@ -206,12 +202,11 @@ object ExcelExporter {
 
         row++
 
-        // Данные с цветом по типу
         monthEntries.forEach { e ->
             val rowColor = when (e.type) {
-                EntryType.HOURS -> "E3F2FD"     // голубой
-                EntryType.PRODUCTS -> "E8F5E9"  // зелёный
-                EntryType.MIXED -> "FFF3E0"     // оранжевый
+                EntryType.HOURS -> "E3F2FD"
+                EntryType.PRODUCTS -> "E8F5E9"
+                EntryType.MIXED -> "FFF3E0"
             }
 
             writeStr(row, colMap["date"]!!, e.date.toString(), bgColor = rowColor)
@@ -242,7 +237,6 @@ object ExcelExporter {
             row++
         }
 
-        // Применяем автоширину
         colWidths.forEach { (col, len) ->
             val width = (len + 2).coerceIn(6, 35).toDouble()
             sheet.width(col, width)
