@@ -15,8 +15,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -43,6 +45,7 @@ import com.example.overtime.data.Entry
 import com.example.overtime.data.EntryType
 import com.example.overtime.data.MonthSummary
 import com.example.overtime.export.ExcelExporter
+import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -61,12 +64,18 @@ fun EntriesScreen(
     var selectedMonth by remember { mutableStateOf(YearMonth.now()) }
     var showPreview by remember { mutableStateOf(false) }
     var showCalculator by remember { mutableStateOf(false) }
+    var isCalendarView by remember { mutableStateOf(false) }
+    var selectedCalendarDate by remember { mutableStateOf<LocalDate?>(null) }
 
     val monthEntries = entries.filter {
         YearMonth.from(it.date) == selectedMonth
     }
 
     val summary = calculateSummary(monthEntries, hourRate)
+
+    val calendarDayEntries = selectedCalendarDate?.let { date ->
+        monthEntries.filter { it.date == date }
+    } ?: emptyList()
 
     if (showPreview) {
         PreviewDialog(
@@ -123,27 +132,27 @@ fun EntriesScreen(
             TopAppBar(
                 title = { Text(appState.t("app_name")) },
                 actions = {
-                    IconButton(onClick = { showCalculator = true }) {
+                    // Переключатель вида (Список / Календарь)
+                    IconButton(onClick = { 
+                        isCalendarView = !isCalendarView 
+                        selectedCalendarDate = null // Сбрасываем выбранный день при переключении
+                    }) {
                         Icon(
-                            Icons.Filled.Calculate,
-                            contentDescription = appState.t("calculator")
+                            imageVector = if (isCalendarView) Icons.Filled.List else Icons.Filled.CalendarToday,
+                            contentDescription = if (isCalendarView) "Список" else "Календарь"
                         )
+                    }
+                    IconButton(onClick = { showCalculator = true }) {
+                        Icon(Icons.Filled.Calculate, contentDescription = appState.t("calculator"))
                     }
                     IconButton(onClick = {
                         if (monthEntries.isEmpty()) {
-                            Toast.makeText(
-                                context,
-                                appState.t("export_empty"),
-                                Toast.LENGTH_SHORT
-                            ).show()
+                            Toast.makeText(context, appState.t("export_empty"), Toast.LENGTH_SHORT).show()
                         } else {
                             showPreview = true
                         }
                     }) {
-                        Icon(
-                            Icons.Filled.Share,
-                            contentDescription = appState.t("export_excel")
-                        )
+                        Icon(Icons.Filled.Share, contentDescription = appState.t("export_excel"))
                     }
                 }
             )
@@ -163,39 +172,103 @@ fun EntriesScreen(
                 month = selectedMonth,
                 summary = summary,
                 appState = appState,
-                onPrevMonth = { selectedMonth = selectedMonth.minusMonths(1) },
-                onNextMonth = { selectedMonth = selectedMonth.plusMonths(1) }
+                onPrevMonth = { 
+                    selectedMonth = selectedMonth.minusMonths(1) 
+                    selectedCalendarDate = null // Сбрасываем выбранный день при смене месяца
+                },
+                onNextMonth = { 
+                    selectedMonth = selectedMonth.plusMonths(1) 
+                    selectedCalendarDate = null
+                }
             )
 
             Spacer(Modifier.height(8.dp))
 
-            if (monthEntries.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
+            if (isCalendarView) {
+                // --- РЕЖИМ КАЛЕНДАРЯ ---
+                MonthCalendar(
+                    month = selectedMonth,
+                    entries = monthEntries,
+                    selectedDate = selectedCalendarDate,
+                    lang = appState.settings.language,
+                    onDayClick = { date ->
+                        if (selectedCalendarDate == date) {
+                            selectedCalendarDate = null // Повторное нажатие сбрасывает выбор
+                        } else {
+                            selectedCalendarDate = date
+                        }
+                    }
+                )
+                
+                Spacer(Modifier.height(12.dp))
+                
+                if (selectedCalendarDate != null) {
                     Text(
-                        text = appState.t("no_entries"),
-                        style = MaterialTheme.typography.bodyLarge
+                        text = "Записи за ${selectedCalendarDate?.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))}",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 16.dp)
                     )
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(monthEntries, key = { it.id }) { entry ->
-                        EntryCard(
-                            entry = entry,
-                            hourRate = hourRate,
-                            appState = appState,
-                            onClick = { onEditClick(entry) },
-                            onDelete = { appState.deleteEntry(entry.id) }
+                    Spacer(Modifier.height(8.dp))
+
+                    if (calendarDayEntries.isEmpty()) {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text(appState.t("no_entries"), style = MaterialTheme.typography.bodyLarge)
+                        }
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(calendarDayEntries, key = { it.id }) { entry ->
+                                EntryCard(
+                                    entry = entry,
+                                    hourRate = hourRate,
+                                    appState = appState,
+                                    onClick = { onEditClick(entry) },
+                                    onDelete = { appState.deleteEntry(entry.id) }
+                                )
+                            }
+                            item { Spacer(Modifier.height(80.dp)) }
+                        }
+                    }
+                } else {
+                    // Если день не выбран
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text(
+                            text = "Выберите день в календаре",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    item { Spacer(Modifier.height(80.dp)) }
+                }
+
+            } else {
+                // --- РЕЖИМ СПИСКА ---
+                if (monthEntries.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text(appState.t("no_entries"), style = MaterialTheme.typography.bodyLarge)
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(monthEntries, key = { it.id }) { entry ->
+                            EntryCard(
+                                entry = entry,
+                                hourRate = hourRate,
+                                appState = appState,
+                                onClick = { onEditClick(entry) },
+                                onDelete = { appState.deleteEntry(entry.id) }
+                            )
+                        }
+                        item { Spacer(Modifier.height(80.dp)) }
+                    }
                 }
             }
         }
@@ -473,3 +546,4 @@ private fun calculateSummary(entries: List<Entry>, hourRate: Int): MonthSummary 
 
 private fun localeFor(lang: String): Locale =
     if (lang == "en") Locale.ENGLISH else Locale("ru")
+```
