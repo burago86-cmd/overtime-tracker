@@ -184,7 +184,6 @@ fun EntriesScreen(
             Spacer(Modifier.height(8.dp))
 
             if (isCalendarView) {
-                // --- РЕЖИМ КАЛЕНДАРЯ (всё в одном скролле) ---
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -251,11 +250,9 @@ fun EntriesScreen(
                             }
                         }
                     }
-
                     item { Spacer(Modifier.height(80.dp)) }
                 }
             } else {
-                // --- РЕЖИМ СПИСКА ---
                 if (monthEntries.isEmpty()) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Text(appState.t("no_entries"), style = MaterialTheme.typography.bodyLarge)
@@ -410,9 +407,8 @@ private fun EntryCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                // --- ШАПКА КАРТОЧКИ (Дата и Время) ---
+                // Шапка с датой и временем
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    // Формируем строку с датой и временем создания
                     val dateStr = entry.date.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))
                     val timeStr = entry.createdAt?.format(DateTimeFormatter.ofPattern("HH:mm"))
                     val headerStr = if (timeStr != null) "$dateStr, $timeStr" else dateStr
@@ -496,103 +492,6 @@ private fun EntryCard(
                         text = entry.comment,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                
-                // Старый блок "Добавлено: ..." мы отсюда убрали, так как перенесли время в шапку
-            }
-
-            Column(horizontalAlignment = Alignment.End) {
-                Text(
-                    text = "${entry.total(hourRate)} ${appState.currencyLabel()}",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                IconButton(onClick = onDelete) {
-                    Icon(
-                        Icons.Filled.Delete,
-                        contentDescription = appState.t("delete"),
-                        tint = MaterialTheme.colorScheme.error
-                    )
-                }
-            }
-        }
-    }
-}
-
-
-                val typeLabel = when (entry.type) {
-                    EntryType.HOURS -> appState.t("type_hours")
-                    EntryType.PRODUCTS -> appState.t("type_products")
-                    EntryType.MIXED -> appState.t("type_mixed")
-                }
-                Text(
-                    text = typeLabel,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary
-                )
-
-                if ((entry.type == EntryType.HOURS || entry.type == EntryType.MIXED) && entry.startTime != null && entry.endTime != null) {
-                    Text(
-                        text = "${entry.startTime}–${entry.endTime} • ${entry.durationText()}",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-
-                if (entry.type == EntryType.PRODUCTS || entry.type == EntryType.MIXED) {
-                    Text(
-                        text = "${entry.productName} × ${entry.quantity}",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-
-                if (entry.isDayOff && entry.lunchMinutes > 0) {
-                    Text(
-                        text = "${appState.t("lunch")}: ${entry.lunchMinutes} ${appState.t("minutes_short")}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                if (entry.customHourRate != null) {
-                    Text(
-                        text = "★ ${appState.t("hour_rate")}: ${entry.customHourRate} ${appState.currencyLabel()}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.tertiary,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-
-                if (entry.inProgress > 0) {
-                    Text(
-                        text = "🔧 ${appState.t("in_progress_short")}: ${entry.inProgress} ${appState.t("pieces_short")}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                if (entry.progressPercent != null) {
-                    Text(
-                        text = "${appState.t("progress_percent")}: ${entry.progressPercent}${appState.t("percent_short")}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.tertiary
-                    )
-                }
-
-                if (entry.comment.isNotBlank()) {
-                    Text(
-                        text = entry.comment,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                if (entry.createdAt != null) {
-                    Text(
-                        text = "Добавлено: ${entry.createdAt.format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm"))}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 4.dp)
                     )
                 }
             }
