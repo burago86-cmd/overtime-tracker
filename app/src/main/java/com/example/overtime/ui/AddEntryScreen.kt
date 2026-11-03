@@ -49,6 +49,7 @@ import com.example.overtime.data.Entry
 import com.example.overtime.data.EntryType
 import com.example.overtime.data.Storage
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
@@ -267,6 +268,7 @@ fun AddEntryScreen(
                 )
             }
 
+            // Блок времени только для записей с часами
             if (type == EntryType.HOURS || type == EntryType.MIXED) {
                 Card(
                     colors = CardDefaults.cardColors(
@@ -448,125 +450,4 @@ fun AddEntryScreen(
 
                             if (showPercentField) {
                                 Spacer(Modifier.height(8.dp))
-                                OutlinedTextField(
-                                    value = progressPercentText,
-                                    onValueChange = { new ->
-                                        if (new.all { it.isDigit() }) {
-                                            val v = new.toIntOrNull() ?: 0
-                                            if (v <= 100) progressPercentText = new
-                                        }
-                                    },
-                                    label = { Text(appState.t("progress_percent")) },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    singleLine = true
-                                )
-                                Text(
-                                    text = appState.t("progress_hint"),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            OutlinedTextField(
-                value = comment,
-                onValueChange = { comment = it },
-                label = { Text(appState.t("comment")) },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(Modifier.height(16.dp))
-
-            Button(
-                onClick = {
-                    saveEntry(
-                        appState = appState,
-                        existing = existing,
-                        date = date,
-                        type = type,
-                        startTime = startTime,
-                        endTime = endTime,
-                        isDayOff = isDayOff,
-                        lunchMinutes = lunchText.toIntOrNull() ?: 0,
-                        customHourRate = customRateText.toIntOrNull(),
-                        productId = productId,
-                        quantity = readyText.toIntOrNull() ?: 0,
-                        inProgress = inProgressText.toIntOrNull() ?: 0,
-                        progressPercent = progressPercentText.toIntOrNull(),
-                        comment = comment
-                    )
-                    onDone()
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(appState.t("save"))
-            }
-        }
-    }
-}
-
-@Composable
-private fun TypeOption(
-    label: String,
-    selected: Boolean,
-    onSelect: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .selectable(selected = selected, onClick = onSelect)
-            .padding(4.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        RadioButton(selected = selected, onClick = onSelect)
-        Text(label, modifier = Modifier.padding(start = 8.dp))
-    }
-}
-
-private fun saveEntry(
-    appState: AppState,
-    existing: Entry?,
-    date: LocalDate,
-    type: EntryType,
-    startTime: LocalTime,
-    endTime: LocalTime,
-    isDayOff: Boolean,
-    lunchMinutes: Int,
-    customHourRate: Int?,
-    productId: String?,
-    quantity: Int,
-    inProgress: Int,
-    progressPercent: Int?,
-    comment: String
-) {
-    val product = appState.settings.products.find { it.id == productId }
-
-    val effectiveCustom = customHourRate?.takeIf { it != appState.settings.hourRate }
-    val isProductType = type == EntryType.PRODUCTS || type == EntryType.MIXED
-    val isHoursType = type == EntryType.HOURS || type == EntryType.MIXED
-
-    val newEntry = Entry(
-        id = existing?.id ?: Storage.newId(),
-        date = date,
-        type = type,
-        startTime = if (isHoursType) startTime else null,
-        endTime = if (isHoursType) endTime else null,
-        isDayOff = isDayOff,
-        lunchMinutes = if (isDayOff) lunchMinutes else 0,
-        customHourRate = if (isHoursType) effectiveCustom else null,
-        productId = if (isProductType) productId else null,
-        productName = if (isProductType) product?.name ?: "" else "",
-        productPrice = if (isProductType) product?.price ?: 0 else 0,
-        quantity = if (isProductType) quantity else 0,
-        inProgress = if (isProductType) inProgress else 0,
-        progressPercent = if (isProductType) progressPercent else null,
-        productGroupId = if (isProductType) product?.groupId else null,
-        comment = comment
-    )
-
-    if (existing == null) appState.addEntry(newEntry)
-    else appState.updateEntry(newEntry)
-}
+             
