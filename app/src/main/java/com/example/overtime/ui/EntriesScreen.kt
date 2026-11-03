@@ -43,8 +43,8 @@ import androidx.compose.ui.unit.dp
 import com.example.overtime.AppState
 import com.example.overtime.data.Entry
 import com.example.overtime.data.EntryType
-import com.example.overtime.data.MonthSummary
 import com.example.overtime.export.ExcelExporter
+import com.example.overtime.util.ReportCalculator
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
@@ -71,7 +71,8 @@ fun EntriesScreen(
         YearMonth.from(it.date) == selectedMonth
     }
 
-    val summary = calculateSummary(monthEntries, hourRate)
+    // Используем новый калькулятор для подсчета денег и сводки
+    val report = ReportCalculator.calculate(monthEntries, appState.settings)
 
     val calendarDayEntries = selectedCalendarDate?.let { date ->
         monthEntries.filter { it.date == date }
@@ -169,7 +170,7 @@ fun EntriesScreen(
         ) {
             SummaryCard(
                 month = selectedMonth,
-                summary = summary,
+                report = report,
                 appState = appState,
                 onPrevMonth = { 
                     selectedMonth = selectedMonth.minusMonths(1) 
@@ -280,10 +281,11 @@ fun EntriesScreen(
         }
     }
 }
+
 @Composable
 private fun SummaryCard(
     month: YearMonth,
-    summary: MonthSummary,
+    report: ReportCalculator.ReportResult,
     appState: AppState,
     onPrevMonth: () -> Unit,
     onNextMonth: () -> Unit
@@ -336,42 +338,31 @@ private fun SummaryCard(
             ) {
                 SummaryItem(
                     label = appState.t("total_hours"),
-                    value = summary.hoursText()
+                    value = "%.2f".format(report.totalHours)
                 )
                 SummaryItem(
                     label = appState.t("total_products"),
-                    value = "${summary.productsReady.values.sum()} ${appState.t("pieces_short")}"
+                    value = "${report.groupStats.sumOf { it.totalQty }} ${appState.t("pieces_short")}"
                 )
                 SummaryItem(
                     label = appState.t("total_money"),
-                    value = "${summary.totalMoney} ${appState.currencyLabel()}"
+                    value = "${report.totalMoney} ${appState.currencyLabel()}"
                 )
             }
 
-            if (summary.productsReady.isNotEmpty()) {
+            if (report.groupStats.isNotEmpty()) {
                 Spacer(Modifier.height(8.dp))
-                summary.productsReady.forEach { (name, qty) ->
+                report.groupStats.forEach { group ->
                     Text(
-                        text = "• $name: $qty ${appState.t("pieces_short")}",
+                        text = "• ${group.groupName}: ${group.totalQty} ${appState.t("pieces_short")}" +
+                               if (group.isKitBased) " (${group.kits} компл.)" else "",
                         style = MaterialTheme.typography.bodySmall
-                    )
-                }
-            }
-
-            if (summary.productsInProgress.isNotEmpty()) {
-                Spacer(Modifier.height(4.dp))
-                summary.productsInProgress.forEach { (name, qty) ->
-                    Text(
-                        text = "• $name: $qty ${appState.t("in_progress_short")}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
         }
     }
 }
-
 @Composable
 private fun SummaryItem(label: String, value: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -497,10 +488,13 @@ private fun EntryCard(
             }
 
             Column(horizontalAlignment = Alignment.End) {
+                val isKit = appState.settings.groups.find { it.id == entry.productGroupId }?.price?.let { it > 0 } == true
+                
                 Text(
-                    text = "${entry.total(hourRate)} ${appState.currencyLabel()}",
+                    text = if (isKit && entry.quantity > 0) "В компл." else "${entry.total(hourRate)} ${appState.currencyLabel()}",
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = if (isKit) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurface
                 )
                 IconButton(onClick = onDelete) {
                     Icon(
@@ -514,34 +508,6 @@ private fun EntryCard(
     }
 }
 
-private fun calculateSummary(entries: List<Entry>, hourRate: Int): MonthSummary {
-    var totalMinutes = 0
-    var totalMoney = 0
-    val ready = mutableMapOf<String, Int>()
-    val inProgressPerProduct = mutableMapOf<String, Pair<LocalDate, Int>>()
-
-    entries.forEach { entry ->
-        if (entry.type == EntryType.HOURS || entry.type == EntryType.MIXED) {
-            totalMinutes += entry.durationMinutes()
-        }
-        if (entry.type == EntryType.PRODUCTS || entry.type == EntryType.MIXED) {
-            if (entry.productName.isNotBlank()) {
-                ready[entry.productName] = (ready[entry.productName] ?: 0) + entry.quantity
-                val existing = inProgressPerProduct[entry.productName]
-                if (existing == null || entry.date.isAfter(existing.first)) {
-                    inProgressPerProduct[entry.productName] = entry.date to entry.inProgress
-                }
-            }
-        }
-        totalMoney += entry.total(hourRate)
-    }
-
-    val inProgress = inProgressPerProduct
-        .filterValues { it.second > 0 }
-        .mapValues { it.value.second }
-
-    return MonthSummary(totalMinutes, totalMoney, ready, inProgress)
-}
-
 private fun localeFor(lang: String): Locale =
     if (lang == "en") Locale.ENGLISH else Locale("ru")
+    
