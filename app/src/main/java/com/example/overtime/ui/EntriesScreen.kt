@@ -132,10 +132,9 @@ fun EntriesScreen(
             TopAppBar(
                 title = { Text(appState.t("app_name")) },
                 actions = {
-                    // Переключатель вида (Список / Календарь)
                     IconButton(onClick = { 
                         isCalendarView = !isCalendarView 
-                        selectedCalendarDate = null // Сбрасываем выбранный день при переключении
+                        selectedCalendarDate = null 
                     }) {
                         Icon(
                             imageVector = if (isCalendarView) Icons.Filled.List else Icons.Filled.CalendarToday,
@@ -174,7 +173,7 @@ fun EntriesScreen(
                 appState = appState,
                 onPrevMonth = { 
                     selectedMonth = selectedMonth.minusMonths(1) 
-                    selectedCalendarDate = null // Сбрасываем выбранный день при смене месяца
+                    selectedCalendarDate = null 
                 },
                 onNextMonth = { 
                     selectedMonth = selectedMonth.plusMonths(1) 
@@ -185,66 +184,76 @@ fun EntriesScreen(
             Spacer(Modifier.height(8.dp))
 
             if (isCalendarView) {
-                // --- РЕЖИМ КАЛЕНДАРЯ ---
-                MonthCalendar(
-                    month = selectedMonth,
-                    entries = monthEntries,
-                    selectedDate = selectedCalendarDate,
-                    lang = appState.settings.language,
-                    onDayClick = { date ->
-                        if (selectedCalendarDate == date) {
-                            selectedCalendarDate = null // Повторное нажатие сбрасывает выбор
-                        } else {
-                            selectedCalendarDate = date
-                        }
-                    }
-                )
-                
-                Spacer(Modifier.height(12.dp))
-                
-                if (selectedCalendarDate != null) {
-                    Text(
-                        text = "Записи за ${selectedCalendarDate?.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))}",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 16.dp)
-                    )
-                    Spacer(Modifier.height(8.dp))
-
-                    if (calendarDayEntries.isEmpty()) {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text(appState.t("no_entries"), style = MaterialTheme.typography.bodyLarge)
-                        }
-                    } else {
-                        LazyColumn(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(horizontal = 12.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            items(calendarDayEntries, key = { it.id }) { entry ->
-                                EntryCard(
-                                    entry = entry,
-                                    hourRate = hourRate,
-                                    appState = appState,
-                                    onClick = { onEditClick(entry) },
-                                    onDelete = { appState.deleteEntry(entry.id) }
-                                )
+                // --- РЕЖИМ КАЛЕНДАРЯ (всё в одном скролле) ---
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    item {
+                        MonthCalendar(
+                            month = selectedMonth,
+                            entries = monthEntries,
+                            selectedDate = selectedCalendarDate,
+                            lang = appState.settings.language,
+                            onDayClick = { date ->
+                                if (selectedCalendarDate == date) {
+                                    selectedCalendarDate = null
+                                } else {
+                                    selectedCalendarDate = date
+                                }
                             }
-                            item { Spacer(Modifier.height(80.dp)) }
-                        }
-                    }
-                } else {
-                    // Если день не выбран
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(
-                            text = "Выберите день в календаре",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                }
+                    
+                    if (selectedCalendarDate != null) {
+                        item {
+                            Text(
+                                text = "Записи за ${selectedCalendarDate?.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))}",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                            )
+                        }
 
+                        if (calendarDayEntries.isEmpty()) {
+                            item {
+                                Box(
+                                    modifier = Modifier.fillMaxWidth().padding(32.dp), 
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(appState.t("no_entries"), style = MaterialTheme.typography.bodyLarge)
+                                }
+                            }
+                        } else {
+                            items(calendarDayEntries, key = { it.id }) { entry ->
+                                Box(modifier = Modifier.padding(horizontal = 12.dp)) {
+                                    EntryCard(
+                                        entry = entry,
+                                        hourRate = hourRate,
+                                        appState = appState,
+                                        onClick = { onEditClick(entry) },
+                                        onDelete = { appState.deleteEntry(entry.id) }
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        item {
+                            Box(
+                                modifier = Modifier.fillMaxWidth().padding(32.dp), 
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "Выберите день в календаре",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+
+                    item { Spacer(Modifier.height(80.dp)) }
+                }
             } else {
                 // --- РЕЖИМ СПИСКА ---
                 if (monthEntries.isEmpty()) {
@@ -274,7 +283,6 @@ fun EntriesScreen(
         }
     }
 }
-
 @Composable
 private fun SummaryCard(
     month: YearMonth,
@@ -429,7 +437,6 @@ private fun EntryCard(
                     color = MaterialTheme.colorScheme.primary
                 )
 
-                // Время смены (только для Часов и Микса)
                 if ((entry.type == EntryType.HOURS || entry.type == EntryType.MIXED) && entry.startTime != null && entry.endTime != null) {
                     Text(
                         text = "${entry.startTime}–${entry.endTime} • ${entry.durationText()}",
@@ -437,7 +444,6 @@ private fun EntryCard(
                     )
                 }
 
-                // Изделия (только для Изделий и Микса)
                 if (entry.type == EntryType.PRODUCTS || entry.type == EntryType.MIXED) {
                     Text(
                         text = "${entry.productName} × ${entry.quantity}",
@@ -486,7 +492,6 @@ private fun EntryCard(
                     )
                 }
 
-                // Время создания записи (добавления)
                 if (entry.createdAt != null) {
                     Text(
                         text = "Добавлено: ${entry.createdAt.format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm"))}",
@@ -519,7 +524,7 @@ private fun calculateSummary(entries: List<Entry>, hourRate: Int): MonthSummary 
     var totalMinutes = 0
     var totalMoney = 0
     val ready = mutableMapOf<String, Int>()
-    val inProgressPerProduct = mutableMapOf<String, Pair<java.time.LocalDate, Int>>()
+    val inProgressPerProduct = mutableMapOf<String, Pair<LocalDate, Int>>()
 
     entries.forEach { entry ->
         if (entry.type == EntryType.HOURS || entry.type == EntryType.MIXED) {
