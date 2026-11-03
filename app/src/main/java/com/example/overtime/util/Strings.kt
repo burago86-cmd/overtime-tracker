@@ -111,7 +111,8 @@ object Strings {
         "import_warning" to "Текущие данные будут заменены данными из файла. Продолжить?",
         "details" to "ДЕТАЛИ",
         "legend" to "Легенда",
-        "group_total" to "Итого"
+        "group_total" to "Итого",
+        "created_at" to "Добавлено"
     )
 
     private val en = mapOf(
@@ -223,7 +224,8 @@ object Strings {
         "import_warning" to "Current data will be replaced with data from the file. Continue?",
         "details" to "DETAILS",
         "legend" to "Legend",
-        "group_total" to "Total"
+        "group_total" to "Total",
+        "created_at" to "Added"
     )
 
     fun t(key: String, lang: String): String {
