@@ -489,28 +489,31 @@ private fun EntryCard(
             }
 
             Column(horizontalAlignment = Alignment.End) {
-    // Ищем группу через productGroupId, а если его нет — через справочник изделий
-    val resolvedGroupId = entry.productGroupId
-        ?: appState.settings.products.find { it.id == entry.productId }?.groupId
-    
-    // Проверяем, есть ли у найденной группы цена
-    val isKit = appState.settings.groups.find { it.id == resolvedGroupId }?.price?.let { it > 0 } == true
-    
-    Text(
-        text = if (isKit && entry.quantity > 0) "В компл." else "${entry.total(hourRate)} ${appState.currencyLabel()}",
-        style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.Bold,
-        color = if (isKit) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurface
-    )
-    IconButton(onClick = onDelete) {
-        Icon(
-            Icons.Filled.Delete,
-            contentDescription = appState.t("delete"),
-            tint = MaterialTheme.colorScheme.error
-        )
-    }
+                // Ищем группу через productGroupId, а если его нет — через справочник изделий
+                val resolvedGroupId = entry.productGroupId
+                    ?: appState.settings.products.find { it.id == entry.productId }?.groupId
+                
+                // Проверяем, есть ли у найденной группы цена
+                val isKit = appState.settings.groups.find { it.id == resolvedGroupId }?.price?.let { it > 0 } == true
+                
+                Text(
+                    text = if (isKit && entry.quantity > 0) "В компл." else "${entry.total(hourRate)} ${appState.currencyLabel()}",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isKit) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurface
+                )
+                IconButton(onClick = onDelete) {
+                    Icon(
+                        Icons.Filled.Delete,
+                        contentDescription = appState.t("delete"),
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                }
             }
-            
+        }
+    }
+}
 
 private fun localeFor(lang: String): Locale =
     if (lang == "en") Locale.ENGLISH else Locale("ru")
+    
