@@ -45,6 +45,7 @@ import com.example.overtime.data.Entry
 import com.example.overtime.data.EntryType
 import com.example.overtime.export.ExcelExporter
 import com.example.overtime.util.ReportCalculator
+import com.example.overtime.util.ReportResult
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
@@ -71,7 +72,7 @@ fun EntriesScreen(
         YearMonth.from(it.date) == selectedMonth
     }
 
-    // Используем новый калькулятор для подсчета денег и сводки
+    // Используем калькулятор для подсчета денег и сводки
     val report = ReportCalculator.calculate(monthEntries, appState.settings)
 
     val calendarDayEntries = selectedCalendarDate?.let { date ->
@@ -285,7 +286,7 @@ fun EntriesScreen(
 @Composable
 private fun SummaryCard(
     month: YearMonth,
-    report: ReportCalculator.ReportResult,
+    report: ReportResult,
     appState: AppState,
     onPrevMonth: () -> Unit,
     onNextMonth: () -> Unit
@@ -488,9 +489,11 @@ private fun EntryCard(
             }
 
             Column(horizontalAlignment = Alignment.End) {
+                // Проверяем, входит ли изделие в группу с ценой комплекта
                 val isKit = appState.settings.groups.find { it.id == entry.productGroupId }?.price?.let { it > 0 } == true
                 
                 Text(
+                    // Если это комплект, пишем "В компл.", иначе считаем как обычно
                     text = if (isKit && entry.quantity > 0) "В компл." else "${entry.total(hourRate)} ${appState.currencyLabel()}",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
@@ -510,4 +513,3 @@ private fun EntryCard(
 
 private fun localeFor(lang: String): Locale =
     if (lang == "en") Locale.ENGLISH else Locale("ru")
-    
