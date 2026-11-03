@@ -80,12 +80,10 @@ object ExcelExporter {
 
         var row = 0
 
-        // === ЗАГОЛОВОК ===
         writeStr(row, 0, "ОТЧЁТ", bold = true)
         writeStr(row, 1, month.toString())
         row += 2
 
-        // === ИТОГО ЗА МЕСЯЦ ===
         writeStr(row, 0, t("month_total").uppercase(), bold = true)
         row++
 
@@ -128,7 +126,6 @@ object ExcelExporter {
 
                 var groupQty = 0
                 var groupMoney = 0
-                var minQty: Int? = null
 
                 productsMap.keys.sorted().forEach { name ->
                     val (qty, money) = productsMap[name] ?: (0 to 0)
@@ -137,8 +134,6 @@ object ExcelExporter {
                     if (showMoney) writeInt(row, 2, money)
                     groupQty += qty
                     groupMoney += money
-                    // ✅ Исправление smart cast
-                    minQty = minQty?.let { minOf(it, qty) } ?: qty
                     row++
                 }
 
@@ -147,7 +142,14 @@ object ExcelExporter {
                 if (showMoney) writeInt(row, 2, groupMoney, bold = true)
                 row++
 
-                writeStr(row, 0, "   ${t("kits")}: ${minQty ?: 0}", bold = true)
+                // Комплекты — по ВСЕМ изделиям группы из справочника
+                val catalogNamesInGroup = settings.products
+                    .filter { if (groupId == null) it.groupId == null else it.groupId == groupId }
+                    .map { it.name }
+                val allNames = (catalogNamesInGroup + productsMap.keys).toSet()
+                val kits = allNames.minOfOrNull { productsMap[it]?.first ?: 0 } ?: 0
+
+                writeStr(row, 0, "   ${t("kits")}: $kits", bold = true)
                 row++
             }
             row++
