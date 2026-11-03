@@ -1,14 +1,7 @@
 package com.example.overtime.ui
 
 import android.app.DatePickerDialog
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
@@ -16,29 +9,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -68,12 +40,8 @@ fun AddEntryScreen(
     var endTime by remember { mutableStateOf(existing?.endTime ?: LocalTime.of(21, 0)) }
     var comment by remember { mutableStateOf(existing?.comment ?: "") }
 
-    var isDayOff by remember {
-        mutableStateOf(existing?.isDayOff ?: Entry.isWeekend(date))
-    }
-    var lunchText by remember {
-        mutableStateOf(existing?.lunchMinutes?.takeIf { it > 0 }?.toString() ?: "")
-    }
+    var isDayOff by remember { mutableStateOf(existing?.isDayOff ?: Entry.isWeekend(date)) }
+    var lunchText by remember { mutableStateOf(existing?.lunchMinutes?.takeIf { it > 0 }?.toString() ?: "") }
     var dayOffManuallyChanged by remember { mutableStateOf(existing != null) }
 
     LaunchedEffect(date) {
@@ -82,16 +50,11 @@ fun AddEntryScreen(
         }
     }
 
-    var customRateText by remember {
-        mutableStateOf(existing?.customHourRate?.toString() ?: "")
-    }
-
+    var customRateText by remember { mutableStateOf(existing?.customHourRate?.toString() ?: "") }
     var productId by remember { mutableStateOf(existing?.productId) }
     var readyText by remember { mutableStateOf(existing?.quantity?.takeIf { it > 0 }?.toString() ?: "") }
     var inProgressText by remember { mutableStateOf(existing?.inProgress?.takeIf { it > 0 }?.toString() ?: "") }
-    var progressPercentText by remember {
-        mutableStateOf(existing?.progressPercent?.toString() ?: "")
-    }
+    var progressPercentText by remember { mutableStateOf(existing?.progressPercent?.toString() ?: "") }
     var productDropdownExpanded by remember { mutableStateOf(false) }
 
     var showCalculator by remember { mutableStateOf(false) }
@@ -149,10 +112,7 @@ fun AddEntryScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
-                        if (existing == null) appState.t("add_entry")
-                        else appState.t("edit_entry")
-                    )
+                    Text(if (existing == null) appState.t("add_entry") else appState.t("edit_entry"))
                 },
                 navigationIcon = {
                     IconButton(onClick = onDone) {
@@ -193,7 +153,6 @@ fun AddEntryScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-
             OutlinedTextField(
                 value = date.format(dateFormatter),
                 onValueChange = { },
@@ -215,15 +174,10 @@ fun AddEntryScreen(
             }
 
             Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                )
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
             ) {
                 Column(modifier = Modifier.padding(12.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(
                             checked = isDayOff,
                             onCheckedChange = {
@@ -268,13 +222,8 @@ fun AddEntryScreen(
                 )
             }
 
-            // Блок времени только для записей с часами
             if (type == EntryType.HOURS || type == EntryType.MIXED) {
-                Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
-                ) {
+                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
                     Column(modifier = Modifier.padding(12.dp)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -287,28 +236,16 @@ fun AddEntryScreen(
                                 fontWeight = FontWeight.Bold
                             )
                             IconButton(onClick = { showCalculator = true }) {
-                                Icon(
-                                    Icons.Filled.Calculate,
-                                    contentDescription = appState.t("calculator")
-                                )
+                                Icon(Icons.Filled.Calculate, contentDescription = appState.t("calculator"))
                             }
                         }
                         Spacer(Modifier.height(8.dp))
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Button(
-                                onClick = { showStartPicker = true },
-                                modifier = Modifier.weight(1f)
-                            ) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(onClick = { showStartPicker = true }, modifier = Modifier.weight(1f)) {
                                 Text("${appState.t("start_time")}: ${startTime.format(timeFormatter)}")
                             }
-                            Button(
-                                onClick = { showEndPicker = true },
-                                modifier = Modifier.weight(1f)
-                            ) {
+                            Button(onClick = { showEndPicker = true }, modifier = Modifier.weight(1f)) {
                                 Text("${appState.t("end_time")}: ${endTime.format(timeFormatter)}")
                             }
                         }
@@ -317,9 +254,7 @@ fun AddEntryScreen(
                             Spacer(Modifier.height(12.dp))
                             OutlinedTextField(
                                 value = lunchText,
-                                onValueChange = { new ->
-                                    if (new.all { it.isDigit() }) lunchText = new
-                                },
+                                onValueChange = { new -> if (new.all { it.isDigit() }) lunchText = new },
                                 label = { Text(appState.t("lunch_minutes")) },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true
@@ -340,9 +275,7 @@ fun AddEntryScreen(
                         ) {
                             OutlinedTextField(
                                 value = customRateText,
-                                onValueChange = { new ->
-                                    if (new.all { it.isDigit() }) customRateText = new
-                                },
+                                onValueChange = { new -> if (new.all { it.isDigit() }) customRateText = new },
                                 placeholder = { Text(defaultRate.toString()) },
                                 modifier = Modifier.weight(1f),
                                 singleLine = true
@@ -366,11 +299,7 @@ fun AddEntryScreen(
             }
 
             if (type == EntryType.PRODUCTS || type == EntryType.MIXED) {
-                Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
-                ) {
+                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
                     Column(modifier = Modifier.padding(12.dp)) {
                         Text(
                             text = appState.t("product"),
@@ -406,8 +335,7 @@ fun AddEntryScreen(
                                     onDismissRequest = { productDropdownExpanded = false }
                                 ) {
                                     products.forEach { p ->
-                                        val groupSuffix = if (p.groupId != null)
-                                            " (${appState.groupName(p.groupId)})" else ""
+                                        val groupSuffix = if (p.groupId != null) " (${appState.groupName(p.groupId)})" else ""
                                         DropdownMenuItem(
                                             text = { Text("${p.name} — ${p.price} $currency$groupSuffix") },
                                             onClick = {
@@ -423,9 +351,7 @@ fun AddEntryScreen(
 
                             OutlinedTextField(
                                 value = readyText,
-                                onValueChange = { new ->
-                                    if (new.all { it.isDigit() }) readyText = new
-                                },
+                                onValueChange = { new -> if (new.all { it.isDigit() }) readyText = new },
                                 label = { Text(appState.t("ready_qty")) },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true
@@ -435,9 +361,7 @@ fun AddEntryScreen(
 
                             OutlinedTextField(
                                 value = inProgressText,
-                                onValueChange = { new ->
-                                    if (new.all { it.isDigit() }) inProgressText = new
-                                },
+                                onValueChange = { new -> if (new.all { it.isDigit() }) inProgressText = new },
                                 label = { Text(appState.t("in_progress_qty")) },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true
@@ -450,4 +374,126 @@ fun AddEntryScreen(
 
                             if (showPercentField) {
                                 Spacer(Modifier.height(8.dp))
-             
+                                OutlinedTextField(
+                                    value = progressPercentText,
+                                    onValueChange = { new ->
+                                        if (new.all { it.isDigit() }) {
+                                            val v = new.toIntOrNull() ?: 0
+                                            if (v <= 100) progressPercentText = new
+                                        }
+                                    },
+                                    label = { Text(appState.t("progress_percent")) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = true
+                                )
+                                Text(
+                                    text = appState.t("progress_hint"),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            OutlinedTextField(
+                value = comment,
+                onValueChange = { comment = it },
+                label = { Text(appState.t("comment")) },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(Modifier.height(16.dp))
+
+            Button(
+                onClick = {
+                    saveEntry(
+                        appState = appState,
+                        existing = existing,
+                        date = date,
+                        type = type,
+                        startTime = startTime,
+                        endTime = endTime,
+                        isDayOff = isDayOff,
+                        lunchMinutes = lunchText.toIntOrNull() ?: 0,
+                        customHourRate = customRateText.toIntOrNull(),
+                        productId = productId,
+                        quantity = readyText.toIntOrNull() ?: 0,
+                        inProgress = inProgressText.toIntOrNull() ?: 0,
+                        progressPercent = progressPercentText.toIntOrNull(),
+                        comment = comment
+                    )
+                    onDone()
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(appState.t("save"))
+            }
+        }
+    }
+}
+
+@Composable
+private fun TypeOption(
+    label: String,
+    selected: Boolean,
+    onSelect: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .selectable(selected = selected, onClick = onSelect)
+            .padding(4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        RadioButton(selected = selected, onClick = onSelect)
+        Text(label, modifier = Modifier.padding(start = 8.dp))
+    }
+}
+
+private fun saveEntry(
+    appState: AppState,
+    existing: Entry?,
+    date: LocalDate,
+    type: EntryType,
+    startTime: LocalTime,
+    endTime: LocalTime,
+    isDayOff: Boolean,
+    lunchMinutes: Int,
+    customHourRate: Int?,
+    productId: String?,
+    quantity: Int,
+    inProgress: Int,
+    progressPercent: Int?,
+    comment: String
+) {
+    val product = appState.settings.products.find { it.id == productId }
+    val effectiveCustom = customHourRate?.takeIf { it != appState.settings.hourRate }
+    val isProductType = type == EntryType.PRODUCTS || type == EntryType.MIXED
+    val isHoursType = type == EntryType.HOURS || type == EntryType.MIXED
+
+    val newEntry = Entry(
+        id = existing?.id ?: Storage.newId(),
+        date = date,
+        type = type,
+        startTime = if (isHoursType) startTime else null,
+        endTime = if (isHoursType) endTime else null,
+        isDayOff = isDayOff,
+        lunchMinutes = if (isDayOff && isHoursType) lunchMinutes else 0,
+        customHourRate = if (isHoursType) effectiveCustom else null,
+        productId = if (isProductType) productId else null,
+        productName = if (isProductType) product?.name ?: "" else "",
+        productPrice = if (isProductType) product?.price ?: 0 else 0,
+        quantity = if (isProductType) quantity else 0,
+        inProgress = if (isProductType) inProgress else 0,
+        progressPercent = if (isProductType) progressPercent else null,
+        productGroupId = if (isProductType) product?.groupId else null,
+        createdAt = existing?.createdAt ?: LocalDateTime.now(),
+        comment = comment
+    )
+
+    if (existing == null) appState.addEntry(newEntry)
+    else appState.updateEntry(newEntry)
+}
+   
