@@ -108,7 +108,6 @@ fun EntriesScreen(
             appState = appState,
             onDismiss = { showCalculator = false },
             onCreateEntry = { start, end, dayOff, lunch ->
-                // Просто закрываем — пользователь сам добавит через форму
                 showCalculator = false
                 Toast.makeText(
                     context,
@@ -124,14 +123,12 @@ fun EntriesScreen(
             TopAppBar(
                 title = { Text(appState.t("app_name")) },
                 actions = {
-                    // Калькулятор
                     IconButton(onClick = { showCalculator = true }) {
                         Icon(
                             Icons.Filled.Calculate,
                             contentDescription = appState.t("calculator")
                         )
                     }
-                    // Экспорт
                     IconButton(onClick = {
                         if (monthEntries.isEmpty()) {
                             Toast.makeText(
@@ -359,29 +356,20 @@ private fun EntryCard(
                     color = MaterialTheme.colorScheme.primary
                 )
 
-                when (entry.type) {
-                    EntryType.HOURS -> {
-                        Text(
-                            text = "${entry.startTime}–${entry.endTime} • ${entry.durationText()}",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-                    EntryType.PRODUCTS -> {
-                        Text(
-                            text = "${entry.productName} × ${entry.quantity}",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-                    EntryType.MIXED -> {
-                        Text(
-                            text = "${entry.startTime}–${entry.endTime} • ${entry.durationText()}",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                        Text(
-                            text = "${entry.productName} × ${entry.quantity}",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
+                // Время смены (только для Часов и Микса)
+                if ((entry.type == EntryType.HOURS || entry.type == EntryType.MIXED) && entry.startTime != null && entry.endTime != null) {
+                    Text(
+                        text = "${entry.startTime}–${entry.endTime} • ${entry.durationText()}",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+
+                // Изделия (только для Изделий и Микса)
+                if (entry.type == EntryType.PRODUCTS || entry.type == EntryType.MIXED) {
+                    Text(
+                        text = "${entry.productName} × ${entry.quantity}",
+                        style = MaterialTheme.typography.bodySmall
+                    )
                 }
 
                 if (entry.isDayOff && entry.lunchMinutes > 0) {
@@ -422,6 +410,16 @@ private fun EntryCard(
                         text = entry.comment,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                // Время создания записи (добавления)
+                if (entry.createdAt != null) {
+                    Text(
+                        text = "Добавлено: ${entry.createdAt.format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm"))}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 4.dp)
                     )
                 }
             }
