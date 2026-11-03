@@ -5,15 +5,12 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 
-enum class EntryType {
-    HOURS,
-    PRODUCTS,
-    MIXED
-}
+enum class EntryType { HOURS, PRODUCTS, MIXED }
 
 data class ProductGroup(
     val id: String,
-    val name: String
+    val name: String,
+    val price: Int? = null // Цена за готовый комплект (если null или 0, то считаются изделия)
 )
 
 data class Product(
@@ -27,15 +24,11 @@ data class Entry(
     val id: String,
     val date: LocalDate,
     val type: EntryType,
-
     val startTime: LocalTime? = null,
     val endTime: LocalTime? = null,
-
     val isDayOff: Boolean = false,
     val lunchMinutes: Int = 0,
-
     val customHourRate: Int? = null,
-
     val productId: String? = null,
     val productName: String = "",
     val productPrice: Int = 0,
@@ -43,14 +36,10 @@ data class Entry(
     val inProgress: Int = 0,
     val progressPercent: Int? = null,
     val productGroupId: String? = null,
-
-    // Время создания этой записи в приложении
     val createdAt: LocalDateTime? = null,
-
     val comment: String = ""
 ) {
-    fun effectiveHourRate(defaultRate: Int): Int =
-        customHourRate ?: defaultRate
+    fun effectiveHourRate(defaultRate: Int): Int = customHourRate ?: defaultRate
 
     fun rawDurationMinutes(): Int {
         val s = startTime ?: return 0
@@ -81,6 +70,7 @@ data class Entry(
         }
     }
 
+    // Деньги за 1 запись (без учета комплектов)
     fun total(defaultHourRate: Int): Int {
         val rate = effectiveHourRate(defaultHourRate)
         val hoursMoney = if (type == EntryType.HOURS || type == EntryType.MIXED)
@@ -117,7 +107,7 @@ data class AppSettings(
 
 data class MonthSummary(
     val totalMinutes: Int = 0,
-    val totalMoney: Int = 0,
+    val totalMoney: Int = 0, // Считается с учетом комплектов
     val productsReady: Map<String, Int> = emptyMap(),
     val productsInProgress: Map<String, Int> = emptyMap()
 ) {
