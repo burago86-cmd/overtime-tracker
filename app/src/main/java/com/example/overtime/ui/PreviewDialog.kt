@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import com.example.overtime.AppState
 import com.example.overtime.data.Entry
 import com.example.overtime.data.EntryType
+import com.example.overtime.util.ReportCalculator
 import java.time.YearMonth
 
 @Composable
@@ -42,38 +43,8 @@ fun PreviewDialog(
     val currency = appState.currencyLabel()
     val showMoney = appState.settings.showMoneyInExport
 
-    var totalHours = 0.0
-    var totalMoney = 0
-    var hoursMoney = 0
-
-    // groupId -> (productName -> (qty, money))
-    val groupProducts = mutableMapOf<String?, MutableMap<String, Pair<Int, Int>>>()
-
-    monthEntries.forEach { e ->
-        if (e.type == EntryType.HOURS || e.type == EntryType.MIXED) {
-            totalHours += e.durationHours()
-            hoursMoney += (e.durationHours() * e.effectiveHourRate(hourRate)).toInt()
-        }
-        if (e.type == EntryType.PRODUCTS || e.type == EntryType.MIXED) {
-            if (e.productName.isNotBlank()) {
-                val resolvedGroupId = e.productGroupId
-                    ?: appState.settings.products.find { it.id == e.productId }?.groupId
-                val map = groupProducts.getOrPut(resolvedGroupId) { mutableMapOf() }
-                val existing = map[e.productName] ?: (0 to 0)
-                map[e.productName] = (existing.first + e.quantity) to
-                        (existing.second + (e.quantity * e.productPrice))
-            }
-        }
-        totalMoney += e.total(hourRate)
-    }
-
-    // Порядок групп
-    val namedGroups = groupProducts.keys
-        .filter { it != null }
-        .sortedBy { id -> appState.groupName(id) }
-    val hasNoGroup = groupProducts.containsKey(null) &&
-            (groupProducts[null]?.isNotEmpty() == true)
-    val orderedKeys: List<String?> = namedGroups + if (hasNoGroup) listOf(null) else emptyList()
+    // Используем наш новый калькулятор
+    val report = ReportCalculator.calculate(monthEntries, appState.settings)
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -164,8 +135,14 @@ fun PreviewDialog(
                             BodyCell(if (e.quantity > 0) e.quantity.toString() else "—", 60.dp)
                             if (showMoney) {
                                 BodyCell(e.effectiveHourRate(hourRate).toString(), 55.dp)
-                                BodyCell(if (e.productPrice > 0) e.productPrice.toString() else "—", 50.dp)
-                                BodyCell("$money $currency", 70.dp)
+                                // Если группа по комплектам, пишем "В компл."
+                                val isKit = appState.settings.groups.find { it.id == e.productGroupId }?.price?.let { it > 0 } == true
+                                BodyCell(
+                                    if (isKit) "В компл." else (if (e.productPrice > 0) e.productPrice.toString() else "—"),
+                                    50.dp
+                                )
+                                // Сумму за 1 запись тоже скрываем, если это комплект
+                                BodyCell(if (isKit) "—" else "$money $currency", 70.dp)
                             }
                         }
                     }
@@ -178,12 +155,12 @@ fun PreviewDialog(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
-                            text = "${appState.t("total_hours")}: %.2f".format(totalHours),
+                            text = "${appState.t("total_hours")}: %.2f".format(report.totalHours),
                             fontWeight = FontWeight.Bold
                         )
                         if (showMoney) {
                             Text(
-                                text = "${appState.t("total_money")}: $totalMoney $currency",
+                                text = "${appState.t("total_money")}: ${report.totalMoney} $currency",
                                 fontWeight = FontWeight.Bold
                             )
                         }
@@ -200,16 +177,12 @@ fun PreviewDialog(
 
                     Spacer(Modifier.height(4.dp))
 
-                    if (orderedKeys.isEmpty()) {
+                    if (report.groupStats.isEmpty()) {
                         Text("—", style = MaterialTheme.typography.bodySmall)
                     } else {
-                        orderedKeys.forEach { groupId ->
-                            val groupName = if (groupId == null) appState.t("no_group")
-                            else appState.groupName(groupId).ifBlank { appState.t("no_group") }
-                            val productsMap = groupProducts[groupId] ?: emptyMap()
-
+                        report.groupStats.forEach { group ->
                             Text(
-                                text = "▶ $groupName",
+                                text = "▶ ${group.groupName}",
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary,
@@ -229,24 +202,8 @@ fun PreviewDialog(
                                 }
                             }
 
-                            var groupQty = 0
-                            var groupMoney = 0
-
-                            // Берем все изделия, привязанные к этой группе в справочнике
-                            val catalogNamesInGroup = appState.settings.products
-                                .filter { if (groupId == null) it.groupId == null else it.groupId == groupId }
-                                .map { it.name }
-
-                            // Объединяем со списком того, что производилось
-                            val allNamesSet = mutableSetOf<String>()
-                            catalogNamesInGroup.forEach { allNamesSet.add(it) }
-                            productsMap.keys.forEach { allNamesSet.add(it) }
-                            val sortedNames = allNamesSet.sorted()
-
-                            sortedNames.forEach { name ->
-                                val actualKey = productsMap.keys.find { it.trim().equals(name.trim(), ignoreCase = true) } ?: name
-                                val (qty, money) = productsMap[actualKey] ?: (0 to 0)
-                                
+                            group.products.keys.sorted().forEach { name ->
+                                val qty = group.products[name] ?: 0
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -255,11 +212,9 @@ fun PreviewDialog(
                                     BodyCell(name, 140.dp)
                                     BodyCell(qty.toString(), 80.dp)
                                     if (showMoney) {
-                                        BodyCell("$money $currency", 90.dp)
+                                        BodyCell("—", 90.dp)
                                     }
                                 }
-                                groupQty += qty
-                                groupMoney += money
                             }
 
                             // Итого по группе
@@ -269,20 +224,20 @@ fun PreviewDialog(
                                     .padding(vertical = 2.dp, horizontal = 4.dp)
                             ) {
                                 Text(
-                                    text = "${appState.t("total_for_group")}: $groupName",
+                                    text = "${appState.t("total_for_group")}: ${group.groupName}",
                                     modifier = Modifier.width(140.dp),
                                     style = MaterialTheme.typography.bodySmall,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    text = groupQty.toString(),
+                                    text = group.totalQty.toString(),
                                     modifier = Modifier.width(80.dp),
                                     style = MaterialTheme.typography.bodySmall,
                                     fontWeight = FontWeight.Bold
                                 )
                                 if (showMoney) {
                                     Text(
-                                        text = "$groupMoney $currency",
+                                        text = "${group.money} $currency",
                                         modifier = Modifier.width(90.dp),
                                         style = MaterialTheme.typography.bodySmall,
                                         fontWeight = FontWeight.Bold
@@ -290,24 +245,21 @@ fun PreviewDialog(
                                 }
                             }
 
-                            // --- Комплекты ---
-                            val kits = sortedNames.minOfOrNull { name ->
-                                val actualKey = productsMap.keys.find { it.trim().equals(name.trim(), ignoreCase = true) }
-                                productsMap[actualKey]?.first ?: 0
-                            } ?: 0
-
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 2.dp, horizontal = 4.dp)
-                            ) {
-                                Text(
-                                    text = "${appState.t("kits")}: $kits",
-                                    modifier = Modifier.width(140.dp),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.tertiary,
-                                    fontWeight = FontWeight.Bold
-                                )
+                            // Комплекты (если применимо)
+                            if (group.isKitBased) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 2.dp, horizontal = 4.dp)
+                                ) {
+                                    Text(
+                                        text = "${appState.t("kits")}: ${group.kits} × ${group.unitPrice}",
+                                        modifier = Modifier.width(220.dp),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.tertiary,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
                             }
                         }
                     }
@@ -324,7 +276,7 @@ fun PreviewDialog(
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "%.2f".format(totalHours),
+                                text = "%.2f".format(report.totalHours),
                                 fontWeight = FontWeight.Bold
                             )
                         }
@@ -337,7 +289,7 @@ fun PreviewDialog(
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "$hoursMoney $currency",
+                                text = "${report.hoursMoney} $currency",
                                 fontWeight = FontWeight.Bold
                             )
                         }
