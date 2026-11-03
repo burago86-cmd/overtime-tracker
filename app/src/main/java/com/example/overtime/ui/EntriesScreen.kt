@@ -546,4 +546,3 @@ private fun calculateSummary(entries: List<Entry>, hourRate: Int): MonthSummary 
 
 private fun localeFor(lang: String): Locale =
     if (lang == "en") Locale.ENGLISH else Locale("ru")
-```
