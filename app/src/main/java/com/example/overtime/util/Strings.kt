@@ -108,7 +108,10 @@ object Strings {
         "export_backup" to "Экспорт базы",
         "import_backup" to "Импорт базы",
         "backup_hint" to "Сохраните JSON-файл с данными, чтобы восстановить их при необходимости",
-        "import_warning" to "Текущие данные будут заменены данными из файла. Продолжить?"
+        "import_warning" to "Текущие данные будут заменены данными из файла. Продолжить?",
+        "details" to "ДЕТАЛИ",
+        "legend" to "Легенда",
+        "group_total" to "Итого"
     )
 
     private val en = mapOf(
@@ -217,7 +220,10 @@ object Strings {
         "export_backup" to "Export data",
         "import_backup" to "Import data",
         "backup_hint" to "Save JSON file with your data to restore it later",
-        "import_warning" to "Current data will be replaced with data from the file. Continue?"
+        "import_warning" to "Current data will be replaced with data from the file. Continue?",
+        "details" to "DETAILS",
+        "legend" to "Legend",
+        "group_total" to "Total"
     )
 
     fun t(key: String, lang: String): String {
