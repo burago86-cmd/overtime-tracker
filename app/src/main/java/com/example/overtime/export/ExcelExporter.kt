@@ -80,10 +80,12 @@ object ExcelExporter {
 
         var row = 0
 
+        // === ЗАГОЛОВОК ===
         writeStr(row, 0, "ОТЧЁТ", bold = true)
         writeStr(row, 1, month.toString())
         row += 2
 
+        // === ИТОГО ЗА МЕСЯЦ ===
         writeStr(row, 0, t("month_total").uppercase(), bold = true)
         row++
 
@@ -127,11 +129,26 @@ object ExcelExporter {
                 var groupQty = 0
                 var groupMoney = 0
 
-                productsMap.keys.sorted().forEach { name ->
-                    val (qty, money) = productsMap[name] ?: (0 to 0)
+                // Берем все изделия, привязанные к этой группе в справочнике
+                val catalogNamesInGroup = settings.products
+                    .filter { if (groupId == null) it.groupId == null else it.groupId == groupId }
+                    .map { it.name }
+
+                // Объединяем со списком того, что производилось в этом месяце
+                val allNamesSet = mutableSetOf<String>()
+                catalogNamesInGroup.forEach { allNamesSet.add(it) }
+                productsMap.keys.forEach { allNamesSet.add(it) }
+                val sortedNames = allNamesSet.sorted()
+
+                sortedNames.forEach { name ->
+                    // Ищем совпадение по имени без учета регистра и пробелов
+                    val actualKey = productsMap.keys.find { it.trim().equals(name.trim(), ignoreCase = true) } ?: name
+                    val (qty, money) = productsMap[actualKey] ?: (0 to 0)
+                    
                     writeStr(row, 0, "   $name")
                     writeInt(row, 1, qty)
                     if (showMoney) writeInt(row, 2, money)
+                    
                     groupQty += qty
                     groupMoney += money
                     row++
@@ -142,12 +159,11 @@ object ExcelExporter {
                 if (showMoney) writeInt(row, 2, groupMoney, bold = true)
                 row++
 
-                // Комплекты — по ВСЕМ изделиям группы из справочника
-                val catalogNamesInGroup = settings.products
-                    .filter { if (groupId == null) it.groupId == null else it.groupId == groupId }
-                    .map { it.name }
-                val allNames = (catalogNamesInGroup + productsMap.keys).toSet()
-                val kits = allNames.minOfOrNull { productsMap[it]?.first ?: 0 } ?: 0
+                // Комплекты — минимум по всем изделиям группы
+                val kits = sortedNames.minOfOrNull { name ->
+                    val actualKey = productsMap.keys.find { it.trim().equals(name.trim(), ignoreCase = true) }
+                    productsMap[actualKey]?.first ?: 0
+                } ?: 0
 
                 writeStr(row, 0, "   ${t("kits")}: $kits", bold = true)
                 row++
