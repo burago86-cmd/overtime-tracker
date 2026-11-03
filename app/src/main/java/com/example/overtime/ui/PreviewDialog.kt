@@ -67,6 +67,7 @@ fun PreviewDialog(
         totalMoney += e.total(hourRate)
     }
 
+    // Порядок групп
     val namedGroups = groupProducts.keys
         .filter { it != null }
         .sortedBy { id -> appState.groupName(id) }
@@ -106,7 +107,7 @@ fun PreviewDialog(
                         .heightIn(max = 420.dp)
                         .verticalScroll(rememberScrollState())
                 ) {
-                    // Таблица записей
+                    // --- Таблица записей ---
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -171,6 +172,7 @@ fun PreviewDialog(
 
                     Spacer(Modifier.height(8.dp))
 
+                    // --- ИТОГО ---
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
@@ -189,6 +191,7 @@ fun PreviewDialog(
 
                     Spacer(Modifier.height(12.dp))
 
+                    // --- СВОДКА ПО ГРУППАМ ---
                     Text(
                         text = appState.t("summary_by_products").uppercase(),
                         style = MaterialTheme.typography.titleSmall,
@@ -220,7 +223,8 @@ fun PreviewDialog(
                                     .padding(2.dp)
                             ) {
                                 HeaderCell(appState.t("product"), 140.dp)
-                                HeaderCell(appState.t("quantity"), 60.dp)
+                                // Увеличили ширину до 80.dp, чтобы «Количество» влезло в одну строку
+                                HeaderCell(appState.t("quantity"), 80.dp)
                                 if (showMoney) {
                                     HeaderCell(appState.t("total_money"), 90.dp)
                                 }
@@ -228,7 +232,6 @@ fun PreviewDialog(
 
                             var groupQty = 0
                             var groupMoney = 0
-                            var kits: Int? = null
 
                             productsMap.keys.sorted().forEach { name ->
                                 val (qty, money) = productsMap[name] ?: (0 to 0)
@@ -238,16 +241,16 @@ fun PreviewDialog(
                                         .padding(vertical = 2.dp, horizontal = 4.dp)
                                 ) {
                                     BodyCell(name, 140.dp)
-                                    BodyCell(qty.toString(), 60.dp)
+                                    BodyCell(qty.toString(), 80.dp)
                                     if (showMoney) {
                                         BodyCell("$money $currency", 90.dp)
                                     }
                                 }
                                 groupQty += qty
                                 groupMoney += money
-                                kits = if (kits == null) qty else minOf(kits!!, qty)
                             }
 
+                            // Итого по группе
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -261,7 +264,7 @@ fun PreviewDialog(
                                 )
                                 Text(
                                     text = groupQty.toString(),
-                                    modifier = Modifier.width(60.dp),
+                                    modifier = Modifier.width(80.dp),
                                     style = MaterialTheme.typography.bodySmall,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -275,18 +278,25 @@ fun PreviewDialog(
                                 }
                             }
 
-                            // Комплекты
+                            // --- Комплекты ---
+                            // Считаем так же, как в Excel: по ВСЕМ изделиям группы из справочника
+                            val catalogNamesInGroup = appState.settings.products
+                                .filter { if (groupId == null) it.groupId == null else it.groupId == groupId }
+                                .map { it.name }
+                            val allNames = (catalogNamesInGroup + productsMap.keys).toSet()
+                            val kits = allNames.minOfOrNull { productsMap[it]?.first ?: 0 } ?: 0
+
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(vertical = 2.dp, horizontal = 4.dp)
                             ) {
                                 Text(
-                                    text = "${appState.t("kits")}: ${kits ?: 0}",
-                                    modifier = Modifier.fillMaxWidth(),
+                                    text = "${appState.t("kits")}: $kits",
+                                    modifier = Modifier.width(140.dp),
                                     style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.tertiary
+                                    color = MaterialTheme.colorScheme.tertiary,
+                                    fontWeight = FontWeight.Bold
                                 )
                             }
                         }
