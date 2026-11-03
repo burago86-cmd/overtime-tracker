@@ -7,6 +7,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.decodeFromString
 import java.io.File
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.LocalTime
 import java.util.UUID
 
@@ -27,6 +28,7 @@ data class EntryDto(
     val inProgress: Int = 0,
     val progressPercent: Int? = null,
     val productGroupId: String? = null,
+    val createdAt: String? = null,
     val comment: String = ""
 )
 
@@ -113,6 +115,7 @@ class Storage(private val context: Context) {
         inProgress = inProgress,
         progressPercent = progressPercent,
         productGroupId = productGroupId,
+        createdAt = createdAt?.toString(),
         comment = comment
     )
 
@@ -133,6 +136,7 @@ class Storage(private val context: Context) {
             inProgress = inProgress,
             progressPercent = progressPercent,
             productGroupId = productGroupId,
+            createdAt = createdAt?.let { LocalDateTime.parse(it) },
             comment = comment
         )
     } catch (e: Exception) { null }
