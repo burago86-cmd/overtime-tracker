@@ -13,55 +13,34 @@ import java.util.UUID
 
 @Serializable
 data class EntryDto(
-    val id: String,
-    val date: String,
-    val type: String,
-    val startTime: String? = null,
-    val endTime: String? = null,
-    val isDayOff: Boolean = false,
-    val lunchMinutes: Int = 0,
-    val customHourRate: Int? = null,
-    val productId: String? = null,
-    val productName: String = "",
-    val productPrice: Int = 0,
-    val quantity: Int = 0,
-    val inProgress: Int = 0,
-    val progressPercent: Int? = null,
-    val productGroupId: String? = null,
-    val createdAt: String? = null,
-    val comment: String = ""
+    val id: String, val date: String, val type: String,
+    val startTime: String? = null, val endTime: String? = null,
+    val isDayOff: Boolean = false, val lunchMinutes: Int = 0,
+    val customHourRate: Int? = null, val productId: String? = null,
+    val productName: String = "", val productPrice: Int = 0,
+    val quantity: Int = 0, val inProgress: Int = 0,
+    val progressPercent: Int? = null, val productGroupId: String? = null,
+    val createdAt: String? = null, val comment: String = ""
 )
 
 @Serializable
 data class ProductDto(
-    val id: String,
-    val name: String,
-    val price: Int,
-    val groupId: String? = null
+    val id: String, val name: String, val price: Int, val groupId: String? = null
 )
 
 @Serializable
 data class ProductGroupDto(
-    val id: String,
-    val name: String
+    val id: String, val name: String, val price: Int? = null
 )
 
 @Serializable
 data class SettingsDto(
-    val hourRate: Int = 10,
-    val language: String = "ru",
-    val currency: String = "BYN",
-    val darkTheme: Boolean = true,
-    val products: List<ProductDto> = emptyList(),
-    val groups: List<ProductGroupDto> = emptyList(),
-    val showMoneyInExport: Boolean = true,
-    val showProgressPercent: Boolean = false,
-    val pinEnabled: Boolean = false,
-    val pin: String = "",
-    val lockAfterMinutes: Int = 5,
-    val reminderEnabled: Boolean = false,
-    val reminderHour: Int = 21,
-    val reminderMinute: Int = 0
+    val hourRate: Int = 10, val language: String = "ru", val currency: String = "BYN",
+    val darkTheme: Boolean = true, val products: List<ProductDto> = emptyList(),
+    val groups: List<ProductGroupDto> = emptyList(), val showMoneyInExport: Boolean = true,
+    val showProgressPercent: Boolean = false, val pinEnabled: Boolean = false,
+    val pin: String = "", val lockAfterMinutes: Int = 5, val reminderEnabled: Boolean = false,
+    val reminderHour: Int = 21, val reminderMinute: Int = 0
 )
 
 @Serializable
@@ -95,84 +74,45 @@ class Storage(private val context: Context) {
         file.writeText(json.encodeToString(dto))
     }
 
-    fun wipe() {
-        file.delete()
-    }
+    fun wipe() { file.delete() }
 
     private fun Entry.toDto() = EntryDto(
-        id = id,
-        date = date.toString(),
-        type = type.name,
-        startTime = startTime?.toString(),
-        endTime = endTime?.toString(),
-        isDayOff = isDayOff,
-        lunchMinutes = lunchMinutes,
-        customHourRate = customHourRate,
-        productId = productId,
-        productName = productName,
-        productPrice = productPrice,
-        quantity = quantity,
-        inProgress = inProgress,
-        progressPercent = progressPercent,
-        productGroupId = productGroupId,
-        createdAt = createdAt?.toString(),
-        comment = comment
+        id = id, date = date.toString(), type = type.name,
+        startTime = startTime?.toString(), endTime = endTime?.toString(),
+        isDayOff = isDayOff, lunchMinutes = lunchMinutes, customHourRate = customHourRate,
+        productId = productId, productName = productName, productPrice = productPrice,
+        quantity = quantity, inProgress = inProgress, progressPercent = progressPercent,
+        productGroupId = productGroupId, createdAt = createdAt?.toString(), comment = comment
     )
 
     private fun EntryDto.toEntry(): Entry? = try {
         Entry(
-            id = id,
-            date = LocalDate.parse(date),
-            type = EntryType.valueOf(type),
-            startTime = startTime?.let { LocalTime.parse(it) },
-            endTime = endTime?.let { LocalTime.parse(it) },
-            isDayOff = isDayOff,
-            lunchMinutes = lunchMinutes,
-            customHourRate = customHourRate,
-            productId = productId,
-            productName = productName,
-            productPrice = productPrice,
-            quantity = quantity,
-            inProgress = inProgress,
-            progressPercent = progressPercent,
-            productGroupId = productGroupId,
-            createdAt = createdAt?.let { LocalDateTime.parse(it) },
+            id = id, date = LocalDate.parse(date), type = EntryType.valueOf(type),
+            startTime = startTime?.let { LocalTime.parse(it) }, endTime = endTime?.let { LocalTime.parse(it) },
+            isDayOff = isDayOff, lunchMinutes = lunchMinutes, customHourRate = customHourRate,
+            productId = productId, productName = productName, productPrice = productPrice,
+            quantity = quantity, inProgress = inProgress, progressPercent = progressPercent,
+            productGroupId = productGroupId, createdAt = createdAt?.let { LocalDateTime.parse(it) },
             comment = comment
         )
     } catch (e: Exception) { null }
 
     private fun AppSettings.toDto() = SettingsDto(
-        hourRate = hourRate,
-        language = language,
-        currency = currency,
-        darkTheme = darkTheme,
+        hourRate = hourRate, language = language, currency = currency, darkTheme = darkTheme,
         products = products.map { ProductDto(it.id, it.name, it.price, it.groupId) },
-        groups = groups.map { ProductGroupDto(it.id, it.name) },
-        showMoneyInExport = showMoneyInExport,
-        showProgressPercent = showProgressPercent,
-        pinEnabled = pinEnabled,
-        pin = pin,
-        lockAfterMinutes = lockAfterMinutes,
-        reminderEnabled = reminderEnabled,
-        reminderHour = reminderHour,
-        reminderMinute = reminderMinute
+        groups = groups.map { ProductGroupDto(it.id, it.name, it.price) },
+        showMoneyInExport = showMoneyInExport, showProgressPercent = showProgressPercent,
+        pinEnabled = pinEnabled, pin = pin, lockAfterMinutes = lockAfterMinutes,
+        reminderEnabled = reminderEnabled, reminderHour = reminderHour, reminderMinute = reminderMinute
     )
 
     private fun SettingsDto.toSettings() = AppSettings(
-        hourRate = hourRate,
-        language = language,
-        currency = currency,
-        darkTheme = darkTheme,
+        hourRate = hourRate, language = language, currency = currency, darkTheme = darkTheme,
         products = products.map { Product(it.id, it.name, it.price, it.groupId) },
-        groups = groups.map { ProductGroup(it.id, it.name) },
-        showMoneyInExport = showMoneyInExport,
-        showProgressPercent = showProgressPercent,
-        pinEnabled = pinEnabled,
-        pin = pin,
-        lockAfterMinutes = lockAfterMinutes,
-        reminderEnabled = reminderEnabled,
-        reminderHour = reminderHour,
-        reminderMinute = reminderMinute
+        groups = groups.map { ProductGroup(it.id, it.name, it.price) },
+        showMoneyInExport = showMoneyInExport, showProgressPercent = showProgressPercent,
+        pinEnabled = pinEnabled, pin = pin, lockAfterMinutes = lockAfterMinutes,
+        reminderEnabled = reminderEnabled, reminderHour = reminderHour, reminderMinute = reminderMinute
     )
 
     companion object {
