@@ -6,8 +6,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -38,17 +38,10 @@ fun MonthCalendar(
 ) {
     val locale = if (lang == "en") Locale.ENGLISH else Locale("ru")
     val firstDay = month.atDay(1)
-    // День недели первого дня (1 = Пн, 7 = Вс). Отступ для пустых клеток
     val offset = firstDay.dayOfWeek.value - 1
     val daysInMonth = month.lengthOfMonth()
-
-    // Группируем записи по дате, чтобы знать, в какие дни рисовать точку
     val entriesByDate = entries.groupBy { it.date }
-
-    // Заголовки дней недели (Пн, Вт...)
-    val weekDays = (1..7).map {
-        DayOfWeek.of(it).getDisplayName(TextStyle.SHORT, locale)
-    }
+    val weekDays = (1..7).map { DayOfWeek.of(it).getDisplayName(TextStyle.SHORT, locale) }
 
     Column(
         modifier = Modifier
@@ -82,8 +75,8 @@ fun MonthCalendar(
                 for (col in 0 until 7) {
                     val cellIndex = row * 7 + col
                     if (cellIndex < offset || currentDay > daysInMonth) {
-                        // Пустая клетка
-                        Box(modifier = Modifier.weight(1f).aspectRatio(1f))
+                        // Пустая клетка (фиксированная высота 44dp)
+                        Box(modifier = Modifier.weight(1f).height(44.dp))
                     } else {
                         val date = month.atDay(currentDay)
                         val hasEntries = entriesByDate.containsKey(date)
@@ -93,7 +86,7 @@ fun MonthCalendar(
                         Box(
                             modifier = Modifier
                                 .weight(1f)
-                                .aspectRatio(1f)
+                                .height(44.dp) // Компактная высота клетки
                                 .padding(2.dp)
                                 .clip(CircleShape)
                                 .background(
