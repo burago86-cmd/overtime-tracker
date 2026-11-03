@@ -2,6 +2,7 @@ package com.example.overtime.data
 
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.LocalTime
 
 enum class EntryType {
@@ -41,8 +42,10 @@ data class Entry(
     val quantity: Int = 0,
     val inProgress: Int = 0,
     val progressPercent: Int? = null,
-
     val productGroupId: String? = null,
+
+    // Время создания этой записи в приложении
+    val createdAt: LocalDateTime? = null,
 
     val comment: String = ""
 ) {
@@ -104,11 +107,9 @@ data class AppSettings(
     val groups: List<ProductGroup> = emptyList(),
     val showMoneyInExport: Boolean = true,
     val showProgressPercent: Boolean = false,
-
     val pinEnabled: Boolean = false,
     val pin: String = "",
     val lockAfterMinutes: Int = 5,
-
     val reminderEnabled: Boolean = false,
     val reminderHour: Int = 21,
     val reminderMinute: Int = 0
