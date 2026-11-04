@@ -197,12 +197,11 @@ object ExcelExporter {
                 if (showMoney) writeInt(row, 2, group.money, bold = true)
                 row++
 
-                if (group.isKitBased) {
-                    writeStr(row, 0, "   ${t("kits")}: ${group.kits} × ${group.unitPrice}", bold = true)
+                             if (group.isKitBased) {
+                    val kitsText = if (showMoney) "   ${t("kits")}: ${group.kits} × ${group.unitPrice}" else "   ${t("kits")}: ${group.kits}"
+                    writeStr(row, 0, kitsText, bold = true)
                     row++
                 }
-            }
-        }
 
         // Итоговые часы и деньги за часы
         if (showMoney) {
