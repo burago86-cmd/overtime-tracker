@@ -43,7 +43,6 @@ fun PreviewDialog(
     val currency = appState.currencyLabel()
     val showMoney = appState.settings.showMoneyInExport
 
-    // Используем наш новый калькулятор
     val report = ReportCalculator.calculate(monthEntries, appState.settings)
 
     AlertDialog(
@@ -78,7 +77,6 @@ fun PreviewDialog(
                         .heightIn(max = 420.dp)
                         .verticalScroll(rememberScrollState())
                 ) {
-                    // --- Таблица записей ---
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -105,6 +103,7 @@ fun PreviewDialog(
                         val durH = if (e.type == EntryType.HOURS || e.type == EntryType.MIXED)
                             e.durationHours() else 0.0
                         val money = e.total(hourRate)
+                        val isKit = appState.settings.groups.find { it.id == e.productGroupId }?.price?.let { it > 0 } == true
 
                         Row(
                             modifier = Modifier
@@ -112,10 +111,7 @@ fun PreviewDialog(
                                 .padding(vertical = 2.dp)
                                 .horizontalScroll(rememberScrollState())
                         ) {
-                            BodyCell(
-                                e.date.toString() + if (e.isDayOff) " *" else "",
-                                75.dp
-                            )
+                            BodyCell(e.date.toString() + if (e.isDayOff) " *" else "", 75.dp)
                             BodyCell(
                                 when (e.type) {
                                     EntryType.HOURS -> appState.t("type_hours")
@@ -126,22 +122,13 @@ fun PreviewDialog(
                             )
                             BodyCell(e.startTime?.toString() ?: "—", 55.dp)
                             BodyCell(e.endTime?.toString() ?: "—", 55.dp)
-                            BodyCell(
-                                if (e.isDayOff && e.lunchMinutes > 0) e.lunchMinutes.toString() else "—",
-                                65.dp
-                            )
+                            BodyCell(if (e.isDayOff && e.lunchMinutes > 0) e.lunchMinutes.toString() else "—", 65.dp)
                             BodyCell(if (durH > 0) "%.2f".format(durH) else "—", 80.dp)
                             BodyCell(e.productName.ifBlank { "—" }, 90.dp)
                             BodyCell(if (e.quantity > 0) e.quantity.toString() else "—", 60.dp)
                             if (showMoney) {
                                 BodyCell(e.effectiveHourRate(hourRate).toString(), 55.dp)
-                                // Если группа по комплектам, пишем "В компл."
-                                val isKit = appState.settings.groups.find { it.id == e.productGroupId }?.price?.let { it > 0 } == true
-                                BodyCell(
-                                    if (isKit) "В компл." else (if (e.productPrice > 0) e.productPrice.toString() else "—"),
-                                    50.dp
-                                )
-                                // Сумму за 1 запись тоже скрываем, если это комплект
+                                BodyCell(if (isKit) "В компл." else (if (e.productPrice > 0) e.productPrice.toString() else "—"), 50.dp)
                                 BodyCell(if (isKit) "—" else "$money $currency", 70.dp)
                             }
                         }
@@ -149,31 +136,19 @@ fun PreviewDialog(
 
                     Spacer(Modifier.height(8.dp))
 
-                    // --- ИТОГО ---
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text(
-                            text = "${appState.t("total_hours")}: %.2f".format(report.totalHours),
-                            fontWeight = FontWeight.Bold
-                        )
+                        Text(text = "${appState.t("total_hours")}: %.2f".format(report.totalHours), fontWeight = FontWeight.Bold)
                         if (showMoney) {
-                            Text(
-                                text = "${appState.t("total_money")}: ${report.totalMoney} $currency",
-                                fontWeight = FontWeight.Bold
-                            )
+                            Text(text = "${appState.t("total_money")}: ${report.totalMoney} $currency", fontWeight = FontWeight.Bold)
                         }
                     }
 
                     Spacer(Modifier.height(12.dp))
 
-                    // --- СВОДКА ПО ГРУППАМ ---
-                    Text(
-                        text = appState.t("summary_by_products").uppercase(),
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Text(text = appState.t("summary_by_products").uppercase(), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
 
                     Spacer(Modifier.height(4.dp))
 
@@ -190,10 +165,7 @@ fun PreviewDialog(
                             )
 
                             Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                                    .padding(2.dp)
+                                modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant).padding(2.dp)
                             ) {
                                 HeaderCell(appState.t("product"), 140.dp)
                                 HeaderCell(appState.t("quantity"), 80.dp)
@@ -204,11 +176,7 @@ fun PreviewDialog(
 
                             group.products.keys.sorted().forEach { name ->
                                 val qty = group.products[name] ?: 0
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 2.dp, horizontal = 4.dp)
-                                ) {
+                                Row(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp, horizontal = 4.dp)) {
                                     BodyCell(name, 140.dp)
                                     BodyCell(qty.toString(), 80.dp)
                                     if (showMoney) {
@@ -217,12 +185,7 @@ fun PreviewDialog(
                                 }
                             }
 
-                            // Итого по группе
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 2.dp, horizontal = 4.dp)
-                            ) {
+                            Row(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp, horizontal = 4.dp)) {
                                 Text(
                                     text = "${appState.t("total_for_group")}: ${group.groupName}",
                                     modifier = Modifier.width(140.dp),
@@ -245,8 +208,7 @@ fun PreviewDialog(
                                 }
                             }
 
-                            // Комплекты (если применимо)
-                               if (group.isKitBased) {
+                            if (group.isKitBased) {
                                 Row(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp, horizontal = 4.dp)) {
                                     Text(
                                         text = if (showMoney) "${appState.t("kits")}: ${group.kits} × ${group.unitPrice}" else "${appState.t("kits")}: ${group.kits}",
@@ -257,53 +219,30 @@ fun PreviewDialog(
                                     )
                                 }
                             }
+                        }
+                    }
 
                     if (showMoney) {
                         Spacer(Modifier.height(8.dp))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                text = appState.t("total_hours"),
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = "%.2f".format(report.totalHours),
-                                fontWeight = FontWeight.Bold
-                            )
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text(text = appState.t("total_hours"), fontWeight = FontWeight.Bold)
+                            Text(text = "%.2f".format(report.totalHours), fontWeight = FontWeight.Bold)
                         }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                text = appState.t("hours_money"),
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = "${report.hoursMoney} $currency",
-                                fontWeight = FontWeight.Bold
-                            )
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text(text = appState.t("hours_money"), fontWeight = FontWeight.Bold)
+                            Text(text = "${report.hoursMoney} $currency", fontWeight = FontWeight.Bold)
                         }
                     }
                 }
             }
         },
         confirmButton = {
-            TextButton(onClick = onOpen) {
-                Text(appState.t("open"))
-            }
+            TextButton(onClick = onOpen) { Text(appState.t("open")) }
         },
         dismissButton = {
             Row {
-                TextButton(onClick = onShare) {
-                    Text(appState.t("share"))
-                }
-                TextButton(onClick = onDismiss) {
-                    Text(appState.t("close"))
-                }
+                TextButton(onClick = onShare) { Text(appState.t("share")) }
+                TextButton(onClick = onDismiss) { Text(appState.t("close")) }
             }
         }
     )
