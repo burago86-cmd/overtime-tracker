@@ -58,12 +58,10 @@ object ExcelExporter {
 
         var row = 0
 
-        // === ЗАГОЛОВОК ===
         writeStr(row, 0, "ОТЧЁТ", bold = true)
         writeStr(row, 1, month.toString())
         row += 2
 
-        // === ИТОГО ЗА МЕСЯЦ (Верхняя шапка) ===
         val report = ReportCalculator.calculate(monthEntries, settings)
         
         writeStr(row, 0, t("month_total").uppercase(), bold = true)
@@ -86,7 +84,6 @@ object ExcelExporter {
         }
         row++
 
-        // === ДЕТАЛИ ===
         writeStr(row, 0, t("details").uppercase(), bold = true)
         row++
 
@@ -161,13 +158,11 @@ object ExcelExporter {
                 if (hasProducts) {
                     writeStr(row, colMap["product_price"]!!, if (isKit) "В компл." else e.productPrice.toString(), bgColor = rowColor)
                 }
-                // Если это комплект, в детализации сумму не пишем (она будет в сводке)
                 writeStr(row, colMap["total_money"]!!, if (isKit) "—" else e.total(settings.hourRate).toString(), bgColor = rowColor)
             }
             row++
         }
-                // === СВОДКА ПО ГРУППАМ ===
-        row++
+                row++
         writeStr(row, 0, t("summary_by_products").uppercase(), bold = true)
         row++
 
@@ -197,13 +192,14 @@ object ExcelExporter {
                 if (showMoney) writeInt(row, 2, group.money, bold = true)
                 row++
 
-                             if (group.isKitBased) {
+                if (group.isKitBased) {
                     val kitsText = if (showMoney) "   ${t("kits")}: ${group.kits} × ${group.unitPrice}" else "   ${t("kits")}: ${group.kits}"
                     writeStr(row, 0, kitsText, bold = true)
                     row++
                 }
+            }
+        }
 
-        // Итоговые часы и деньги за часы
         if (showMoney) {
             row++
             writeStr(row, 0, t("total_hours"), bold = true)
@@ -213,7 +209,6 @@ object ExcelExporter {
             writeInt(row, 2, report.hoursMoney, bold = true)
         }
 
-        // Применяем автоширину
         colWidths.forEach { (col, len) ->
             val width = (len + 2).coerceIn(6, 35).toDouble()
             sheet.width(col, width)
