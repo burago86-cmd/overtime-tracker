@@ -43,6 +43,7 @@ fun PreviewDialog(
     val currency = appState.currencyLabel()
     val showMoney = appState.settings.showMoneyInExport
 
+    // Используем новый калькулятор
     val report = ReportCalculator.calculate(monthEntries, appState.settings)
 
     AlertDialog(
@@ -77,6 +78,7 @@ fun PreviewDialog(
                         .heightIn(max = 420.dp)
                         .verticalScroll(rememberScrollState())
                 ) {
+                    // --- Таблица записей ---
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -103,7 +105,10 @@ fun PreviewDialog(
                         val durH = if (e.type == EntryType.HOURS || e.type == EntryType.MIXED)
                             e.durationHours() else 0.0
                         val money = e.total(hourRate)
-                        val isKit = appState.settings.groups.find { it.id == e.productGroupId }?.price?.let { it > 0 } == true
+                        
+                        // Проверяем, является ли изделие комплектным
+                        val resolvedGroupId = e.productGroupId ?: appState.settings.products.find { it.id == e.productId }?.groupId
+                        val isKit = appState.settings.groups.find { it.id == resolvedGroupId }?.price?.let { it > 0 } == true
 
                         Row(
                             modifier = Modifier
@@ -136,6 +141,7 @@ fun PreviewDialog(
 
                     Spacer(Modifier.height(8.dp))
 
+                    // --- ИТОГО ---
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
@@ -148,6 +154,7 @@ fun PreviewDialog(
 
                     Spacer(Modifier.height(12.dp))
 
+                    // --- СВОДКА ПО ГРУППАМ ---
                     Text(text = appState.t("summary_by_products").uppercase(), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
 
                     Spacer(Modifier.height(4.dp))
@@ -185,6 +192,7 @@ fun PreviewDialog(
                                 }
                             }
 
+                            // Итого по группе
                             Row(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp, horizontal = 4.dp)) {
                                 Text(
                                     text = "${appState.t("total_for_group")}: ${group.groupName}",
@@ -208,10 +216,17 @@ fun PreviewDialog(
                                 }
                             }
 
+                            // Комплекты (если применимо)
                             if (group.isKitBased) {
                                 Row(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp, horizontal = 4.dp)) {
+                                    // ТУТ ИСПРАВЛЕНИЕ: Если showMoney выключено, показываем только количество
+                                    val kitText = if (showMoney) {
+                                        "${appState.t("kits")}: ${group.kits} × ${group.unitPrice}"
+                                    } else {
+                                        "${appState.t("kits")}: ${group.kits}"
+                                    }
                                     Text(
-                                        text = if (showMoney) "${appState.t("kits")}: ${group.kits} × ${group.unitPrice}" else "${appState.t("kits")}: ${group.kits}",
+                                        text = kitText,
                                         modifier = Modifier.width(220.dp),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.tertiary,
