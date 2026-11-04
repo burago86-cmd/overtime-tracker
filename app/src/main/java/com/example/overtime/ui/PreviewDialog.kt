@@ -246,14 +246,10 @@ fun PreviewDialog(
                             }
 
                             // Комплекты (если применимо)
-                            if (group.isKitBased) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 2.dp, horizontal = 4.dp)
-                                ) {
+                               if (group.isKitBased) {
+                                Row(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp, horizontal = 4.dp)) {
                                     Text(
-                                        text = "${appState.t("kits")}: ${group.kits} × ${group.unitPrice}",
+                                        text = if (showMoney) "${appState.t("kits")}: ${group.kits} × ${group.unitPrice}" else "${appState.t("kits")}: ${group.kits}",
                                         modifier = Modifier.width(220.dp),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.tertiary,
@@ -261,8 +257,6 @@ fun PreviewDialog(
                                     )
                                 }
                             }
-                        }
-                    }
 
                     if (showMoney) {
                         Spacer(Modifier.height(8.dp))
